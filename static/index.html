@@ -514,8 +514,10 @@ function waLink(phone, msg) {
 }
 
 function birthCardHTML(b) {
-  const team = women.filter(w=>b.teamIds.includes(w.id));
-  const addr = (women.find(w=>w.name===b.name)||{}).addr || '';
+  const team = b.team && b.team.length
+    ? b.team
+    : women.filter(w=>b.teamIds.includes(w.id));
+  const addr = b.addr || (women.find(w=>w.name===b.name)||{}).addr || '';
   const dateStr = b.date ? b.date.split('-').reverse().join('.') : '—';
   const members = team.map(w=>{
     const msgAsk = `שלום ${w.name.split(' ')[0]}, האם תוכלי לבשל עבור ${b.name} (ילדה ב-${dateStr})?`;
