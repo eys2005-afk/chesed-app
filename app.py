@@ -3,7 +3,7 @@
 Flask Backend + Google Sheets sync
 """
 
-import os, json, time, ssl
+import os, json, time, ssl, threading
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -123,6 +123,9 @@ def get_sheets_client():
         print(f"Sheets error: {e}")
         return None, None
 
+def sync_to_sheets_bg(women_data):
+    threading.Thread(target=sync_to_sheets, args=(list(women_data),), daemon=True).start()
+
 def sync_to_sheets(women_data):
     """Write women list to Google Sheets (Women tab)."""
     _, sh = get_sheets_client()
@@ -181,7 +184,7 @@ def load_from_sheets():
             hood  = row[5].strip()        if len(row) > 5 else ''
             addr  = row[6].strip()        if len(row) > 6 else ''
             delete= row[8].strip()        if len(row) > 8 else ''
-            if not name or delete == '#N/A' or delete.startswith('מחק'):
+            if not name or delete.startswith('מחק'):
                 continue
             if not hood:
                 hood = detect_hood(addr)
@@ -268,7 +271,7 @@ def add_woman():
         'unavailUntil': None,
     }
     _women.append(woman)
-    sync_to_sheets(_women)
+    sync_to_sheets_bg(_women)
     return jsonify(woman), 201
 
 @app.route('/api/women/<int:wid>', methods=['PATCH'])
@@ -282,7 +285,7 @@ def update_woman(wid):
     for key in allowed:
         if key in data:
             woman[key] = data[key]
-    sync_to_sheets(_women)
+    sync_to_sheets_bg(_women)
     return jsonify(woman)
 
 @app.route('/api/women/<int:wid>/cant', methods=['POST'])
@@ -294,7 +297,7 @@ def mark_cant(wid):
         return jsonify({'error': 'לא נמצאה'}), 404
     woman['status'] = 'unavail'
     woman['unavailUntil'] = (time.time() + 7 * 24 * 3600) * 1000
-    sync_to_sheets(_women)
+    sync_to_sheets_bg(_women)
     return jsonify(woman)
 
 # ══════════════════════════════════════════
@@ -327,7 +330,7 @@ def add_birth():
         'created': datetime.now().isoformat(),
     }
     _births.insert(0, birth)
-    sync_to_sheets(_women)
+    sync_to_sheets_bg(_women)
     return jsonify(birth), 201
 
 @app.route('/api/births/<int:bid>', methods=['DELETE'])
@@ -366,7 +369,7 @@ def replace_team_member(bid):
         birth['teamIds'] = [replacement['id'] if i == old_id else i
                             for i in birth['teamIds']]
 
-    sync_to_sheets(_women)
+    sync_to_sheets_bg(_women)
     return jsonify({'birth': birth, 'replacement': replacement})
 
 # ══════════════════════════════════════════
