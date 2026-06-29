@@ -446,7 +446,8 @@ def suggest_team():
     else:
         available = sorted(available, key=sort_key)
 
-    return jsonify(available[:5])
+    limit = request.args.get('limit', 5, type=int)
+    return jsonify(available[:limit])
 
 # ══════════════════════════════════════════
 # ROUTES — SYNC
