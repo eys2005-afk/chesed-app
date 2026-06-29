@@ -420,23 +420,9 @@ def suggest_team():
         except:
             return '01/01/2000'
 
-    cutoff = datetime.now() - timedelta(days=14)
-
-    def cooked_recently(w):
-        d = w.get('lastCooked', '')
-        if not d:
-            return False
-        try:
-            parts = d.split('/')
-            cooked_date = datetime(int(parts[2]), int(parts[1]), int(parts[0]))
-            return cooked_date >= cutoff
-        except:
-            return False
-
     available = [w for w in _women
                  if w['status'] == 'available'
-                 and w['id'] not in exclude_ids
-                 and not cooked_recently(w)]
+                 and w['id'] not in exclude_ids]
 
     # prefer same neighborhood if specified
     if hood_filter:
