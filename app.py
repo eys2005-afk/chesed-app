@@ -127,7 +127,9 @@ def check_unavail_expiry(women):
 # ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html', mimetype='text/html; charset=utf-8')
+    resp = send_from_directory('static', 'index.html')
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return resp
 
 # ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
 # ROUTES ג€” WOMEN
