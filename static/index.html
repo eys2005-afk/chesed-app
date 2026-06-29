@@ -489,7 +489,7 @@ async function renderCandidates() {
 
 function candidateHTML(w) {
   const sel = selectedIds.has(w.id);
-  const cooked = w.lastCooked ? `בישלה: ${w.lastCooked}` : 'לא בישלה עדיין';
+  const cooked = w.lastCooked ? `בישול אחרון: ${w.lastCooked}` : 'טרם בישלה';
   return `<div class="team-candidate ${sel?'selected':''}" onclick="toggleCandidate(${w.id})">
     <div class="candidate-check">${sel?'✓':''}</div>
     <div class="member-avatar">${w.name[0]}</div>
