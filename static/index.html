@@ -64,6 +64,8 @@
   .member-available{font-size:11px;color:var(--teal-dark);background:var(--teal-light);padding:2px 7px;border-radius:10px;}
   .member-unavail{font-size:11px;color:var(--coral);background:var(--coral-light);padding:2px 7px;border-radius:10px;}
   .cant-btn{font-size:10px;color:var(--coral);background:var(--coral-light);border:1px solid var(--coral);border-radius:8px;padding:2px 7px;cursor:pointer;font-family:'Heebo',sans-serif;}
+  .cant-days-btn{font-family:'Heebo',sans-serif;padding:8px 12px;border:2px solid var(--border);border-radius:10px;background:white;font-size:13px;cursor:pointer;}
+  .cant-days-btn.active{border-color:var(--coral);background:var(--coral-light);color:var(--coral);font-weight:700;}
 
   /* TEAM CANDIDATES */
   .team-candidate{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cream);border-radius:10px;margin-bottom:6px;border:2px solid transparent;cursor:pointer;transition:all .15s;}
@@ -139,11 +141,6 @@
 </div>
 
 <!-- TABS -->
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('home')">ראשי</div>
-  <div class="tab" onclick="switchTab('women')">רשימת נשים</div>
-  <div class="tab" onclick="switchTab('history')">היסטוריה</div>
-</div>
 
 <!-- ===== HOME ===== -->
 <div id="screen-home" class="screen active">
@@ -215,7 +212,6 @@
   <div id="history-list"><div class="loading"><div class="spinner"></div>טוען...</div></div>
 </div>
 
-<button class="fab" onclick="openAddWomanModal()">＋</button>
 
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
@@ -254,7 +250,10 @@
       <input class="input-field" id="birth-date" type="date">
     </div>
     <div class="divider"></div>
-    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">בחרי מבשלות לצוות</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-size:13px;font-weight:600;">בחרי מבשלות לצוות</div>
+      <button class="btn-primary" style="padding:7px 16px;font-size:13px;" onclick="confirmBirth()">✅ אישור</button>
+    </div>
     <div style="font-size:11px;color:var(--text-light);margin-bottom:10px;">סמני כמה שצריך לפי תור</div>
     <div class="sel-count">נבחרו <span id="sel-count-num">0</span></div>
     <div id="candidates-list"></div>
@@ -307,8 +306,15 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div style="text-align:center;font-size:22px;font-weight:700;margin:10px 0 4px;" id="cant-name">—</div>
-    <div style="text-align:center;color:var(--text-light);font-size:13px;margin-bottom:20px;">לא יכולה להשתתף? תסומן כלא זמינה לשבוע והבאה בתור תיכנס.</div>
-    <button class="btn-danger" onclick="confirmCant()">⏳ אישור — לא זמינה לשבוע</button>
+    <div style="text-align:center;color:var(--text-light);font-size:13px;margin-bottom:16px;">כמה ימים לא זמינה?</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;">
+      <button class="cant-days-btn" onclick="setCantDays(1)">יום</button>
+      <button class="cant-days-btn" onclick="setCantDays(3)">3 ימים</button>
+      <button class="cant-days-btn active" onclick="setCantDays(7)">שבוע</button>
+      <button class="cant-days-btn" onclick="setCantDays(14)">שבועיים</button>
+      <button class="cant-days-btn" onclick="setCantDays(30)">חודש</button>
+    </div>
+    <button class="btn-danger" onclick="confirmCant()">⏳ אישור — לא זמינה</button>
     <button class="btn-cancel" onclick="closeModal('cant-modal')">ביטול</button>
   </div>
 </div>
@@ -342,6 +348,12 @@ let births = [];
 let activeBirth = null;
 let selectedIds = new Set();
 let cantTargetId = null;
+let cantDays = 7;
+function setCantDays(d) {
+  cantDays = d;
+  document.querySelectorAll('.cant-days-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+}
 let activeHoodFilter = 'הכל';
 let activeSearchTerm = '';
 
@@ -540,7 +552,7 @@ function openCantModal(id,name){cantTargetId=id;document.getElementById('cant-na
 async function confirmCant() {
   if(!activeBirth) return;
   const result = await apiFetch(`/api/births/${activeBirth.id}/replace`,
-    {method:'POST',body:{oldId:cantTargetId}});
+    {method:'POST',body:{oldId:cantTargetId, days: cantDays}});
   activeBirth = result.birth;
   births[0] = activeBirth;
   await loadWomen();
@@ -548,6 +560,13 @@ async function confirmCant() {
   renderActiveBirth();
   const rep = result.replacement;
   toast(rep ? `✅ ${rep.name} נכנסה במקום` : 'עודכן — אין החלפה זמינה');
+}
+
+async function deleteBirth(bid) {
+  if(!confirm('למחוק לידה זו מההיסטוריה?')) return;
+  await apiFetch(`/api/births/${bid}`, {method:'DELETE'});
+  births = births.filter(b=>b.id!==bid);
+  renderHistory();
 }
 
 // ══════════════════════════════════════════
@@ -627,7 +646,10 @@ async function addWoman() {
 // HISTORY
 // ══════════════════════════════════════════
 function renderHistory() {
-  document.getElementById('history-list').innerHTML = births.length ? births.map(b=>{
+  // deduplicate by id
+  const seen = new Set();
+  const unique = births.filter(b=>{ if(seen.has(b.id)) return false; seen.add(b.id); return true; });
+  document.getElementById('history-list').innerHTML = unique.length ? unique.map(b=>{
     const team = women.filter(w=>b.teamIds.includes(w.id));
     return `<div class="card" style="margin-bottom:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -635,13 +657,15 @@ function renderHistory() {
           <div style="font-size:15px;font-weight:700;">${b.name}</div>
           ${b.hood?`<div style="margin-top:3px;"><span class="hood-badge gold">${b.hood}</span></div>`:''}
         </div>
-        <div style="font-size:11px;background:var(--gold-light);color:var(--gold);padding:3px 9px;border-radius:20px;font-weight:600;">
-          ${b.date?b.date.split('-').reverse().join('.'):'—'}
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-size:11px;background:var(--gold-light);color:var(--gold);padding:3px 9px;border-radius:20px;font-weight:600;">
+            ${b.date?b.date.split('-').reverse().join('.'):'—'}
+          </div>
+          <button onclick="deleteBirth(${b.id})" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--text-light);" title="מחק">🗑️</button>
         </div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;">
         ${team.map(w=>`<span style="font-size:11px;background:var(--purple-light);color:var(--purple-dark);padding:2px 8px;border-radius:10px;">${w.name} · ${w.hood}</span>`).join('')}
-        ${b.teamIds.filter(id=>!women.find(w=>w.id===id)).map(()=>`<span style="font-size:11px;background:var(--cream);color:var(--text-light);padding:2px 8px;border-radius:10px;">—</span>`).join('')}
       </div>
     </div>`;
   }).join('')
