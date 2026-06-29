@@ -1,5 +1,5 @@
 """
-׳¡׳‘׳‘ ׳—׳¡׳“ ג€” ׳’׳¨׳¢׳™׳ ׳×׳•׳¨׳ ׳™ ׳¢׳׳™׳—׳™ ׳¨׳׳׳”
+סבב חסד — גרעין תורני עמיחי רמלה
 Flask Backend + Google Sheets sync
 """
 
@@ -25,9 +25,9 @@ load_dotenv()
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
-# GOOGLE SHEETS (optional ג€” set env vars to enable)
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+# ══════════════════════════════════════════
+# GOOGLE SHEETS (optional — set env vars to enable)
+# ══════════════════════════════════════════
 SHEETS_ENABLED = bool(os.getenv('GOOGLE_SHEET_ID'))
 
 def get_sheets_client():
@@ -45,10 +45,10 @@ def get_sheets_client():
         sh = gc.open_by_key(os.getenv('GOOGLE_SHEET_ID'))
         # create worksheets if missing
         titles = [w.title for w in sh.worksheets()]
-        if '׳ ׳©׳™׳' not in titles:
-            sh.add_worksheet(title='׳ ׳©׳™׳', rows=500, cols=10)
-        if '׳׳™׳“׳•׳×' not in titles:
-            sh.add_worksheet(title='׳׳™׳“׳•׳×', rows=500, cols=10)
+        if 'נשים' not in titles:
+            sh.add_worksheet(title='נשים', rows=500, cols=10)
+        if 'לידות' not in titles:
+            sh.add_worksheet(title='לידות', rows=500, cols=10)
         return gc, sh
     except Exception as e:
         print(f"Sheets error: {e}")
@@ -60,9 +60,9 @@ def sync_to_sheets(women_data):
     if not sh:
         return
     try:
-        ws = sh.worksheet('׳ ׳©׳™׳')
+        ws = sh.worksheet('נשים')
         ws.clear()
-        ws.append_row(['ID','׳©׳','׳˜׳׳₪׳•׳','׳©׳›׳•׳ ׳”','׳›׳×׳•׳‘׳×','׳¡׳˜׳˜׳•׳¡','׳׳ ׳–׳׳™׳ ׳” ׳¢׳“'])
+        ws.append_row(['ID','שם','טלפון','שכונה','כתובת','סטטוס','לא זמינה עד'])
         for w in women_data:
             until = ''
             if w.get('unavailUntil'):
@@ -78,17 +78,17 @@ def load_from_sheets():
     if not sh:
         return None
     try:
-        ws = sh.worksheet('׳ ׳©׳™׳')
+        ws = sh.worksheet('נשים')
         rows = ws.get_all_records()
         result = []
         for r in rows:
             result.append({
                 'id':          r.get('ID'),
-                'name':        r.get('׳©׳',''),
-                'phone':       r.get('׳˜׳׳₪׳•׳',''),
-                'hood':        r.get('׳©׳›׳•׳ ׳”',''),
-                'addr':        r.get('׳›׳×׳•׳‘׳×',''),
-                'status':      r.get('׳¡׳˜׳˜׳•׳¡','available'),
+                'name':        r.get('שם',''),
+                'phone':       r.get('טלפון',''),
+                'hood':        r.get('שכונה',''),
+                'addr':        r.get('כתובת',''),
+                'status':      r.get('סטטוס','available'),
                 'unavailUntil': None,
             })
         return result
@@ -96,20 +96,20 @@ def load_from_sheets():
         print(f"Sheets load error: {e}")
         return None
 
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+# ══════════════════════════════════════════
 # IN-MEMORY DATA (fallback when no Sheets)
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+# ══════════════════════════════════════════
 _women = [
-    {'id':1,'name':'׳¨׳‘׳§׳” ׳׳•׳™',   'phone':'050-1234567','hood':'׳¢׳׳™׳©׳‘',     'addr':'׳”׳¨׳¦׳ 12',    'status':'available','unavailUntil':None},
-    {'id':2,'name':'׳׳¨׳™׳ ׳׳‘׳¨׳”׳', 'phone':'052-9876543','hood':'׳©׳›׳•׳ ׳•׳×',    'addr':'׳‘׳ ׳’׳•׳¨׳™׳•׳ 3','status':'available','unavailUntil':None},
-    {'id':3,'name':'׳“׳™׳ ׳” ׳©׳₪׳™׳¨׳', 'phone':'054-1112233','hood':'׳ ׳׳•׳× ׳©׳׳™׳¨', 'addr':'׳”׳ ׳‘׳™׳׳™׳ 7',  'status':'available','unavailUntil':None},
-    {'id':4,'name':'׳׳׳” ׳’׳•׳׳“׳‘׳¨׳’','phone':'053-4445566','hood':'׳¨׳׳‘׳׳¡',     'addr':'׳”׳₪׳׳׳— 2',    'status':'available','unavailUntil':None},
-    {'id':5,'name':'׳—׳ ׳” ׳¨׳•׳–׳',   'phone':'050-7778899','hood':'׳”׳¨׳“׳•׳£',     'addr':'׳”׳“׳§׳ 9',     'status':'available','unavailUntil':None},
-    {'id':6,'name':'׳©׳¨׳” ׳›׳”׳',    'phone':'052-3334455','hood':'׳¢׳׳™׳©׳‘',     'addr':'׳•׳™׳¦׳׳ 4',    'status':'available','unavailUntil':None},
-    {'id':7,'name':'׳ ׳¢׳׳™ ׳‘׳¨׳§',   'phone':'057-1122334','hood':'׳©׳›׳•׳ ׳•׳×',    'addr':'׳”׳ ׳©׳™׳ 11',   'status':'available','unavailUntil':None},
-    {'id':8,'name':'׳¨׳—׳ ׳₪׳¨׳¥',    'phone':'054-6667788','hood':'׳ ׳׳•׳× ׳©׳׳™׳¨', 'addr':'׳”׳’׳₪׳ 5',     'status':'available','unavailUntil':None},
-    {'id':9,'name':'׳™׳¢׳ ׳׳–׳¨׳—׳™',  'phone':'050-9998877','hood':'׳¨׳׳‘׳׳¡',     'addr':'׳”׳–׳™׳× 8',     'status':'available','unavailUntil':None},
-    {'id':10,'name':'׳×׳׳¨ ׳©׳׳•׳',  'phone':'052-1113322','hood':'׳”׳¨׳“׳•׳£',     'addr':'׳”׳‘׳¨׳•׳© 3',    'status':'available','unavailUntil':None},
+    {'id':1,'name':'רבקה לוי',   'phone':'050-1234567','hood':'עמישב',     'addr':'הרצל 12',    'status':'available','unavailUntil':None},
+    {'id':2,'name':'מרים אברהם', 'phone':'052-9876543','hood':'שכונות',    'addr':'בן גוריון 3','status':'available','unavailUntil':None},
+    {'id':3,'name':'דינה שפירא', 'phone':'054-1112233','hood':'נאות שמיר', 'addr':'הנביאים 7',  'status':'available','unavailUntil':None},
+    {'id':4,'name':'לאה גולדברג','phone':'053-4445566','hood':'רמבלס',     'addr':'הפלמח 2',    'status':'available','unavailUntil':None},
+    {'id':5,'name':'חנה רוזן',   'phone':'050-7778899','hood':'הרדוף',     'addr':'הדקל 9',     'status':'available','unavailUntil':None},
+    {'id':6,'name':'שרה כהן',    'phone':'052-3334455','hood':'עמישב',     'addr':'ויצמן 4',    'status':'available','unavailUntil':None},
+    {'id':7,'name':'נעמי ברק',   'phone':'057-1122334','hood':'שכונות',    'addr':'הנשיא 11',   'status':'available','unavailUntil':None},
+    {'id':8,'name':'רחל פרץ',    'phone':'054-6667788','hood':'נאות שמיר', 'addr':'הגפן 5',     'status':'available','unavailUntil':None},
+    {'id':9,'name':'יעל מזרחי',  'phone':'050-9998877','hood':'רמבלס',     'addr':'הזית 8',     'status':'available','unavailUntil':None},
+    {'id':10,'name':'תמר שלום',  'phone':'052-1113322','hood':'הרדוף',     'addr':'הברוש 3',    'status':'available','unavailUntil':None},
 ]
 
 _births = []
@@ -122,18 +122,16 @@ def check_unavail_expiry(women):
             w['unavailUntil'] = None
     return women
 
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
-# ROUTES ג€” STATIC
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+# ══════════════════════════════════════════
+# ROUTES — STATIC
+# ══════════════════════════════════════════
 @app.route('/')
 def index():
-    resp = send_from_directory('static', 'index.html')
-    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
-    return resp
+    return send_from_directory('static', 'index.html')
 
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
-# ROUTES ג€” WOMEN
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+# ══════════════════════════════════════════
+# ROUTES — WOMEN
+# ══════════════════════════════════════════
 @app.route('/api/women', methods=['GET'])
 def get_women():
     global _women
@@ -145,7 +143,7 @@ def add_woman():
     global _women
     data = request.json
     if not data.get('name') or not data.get('phone') or not data.get('hood'):
-        return jsonify({'error': '׳—׳¡׳¨׳™׳ ׳©׳“׳•׳× ׳—׳•׳‘׳”'}), 400
+        return jsonify({'error': 'חסרים שדות חובה'}), 400
     new_id = max((w['id'] for w in _women), default=0) + 1
     woman = {
         'id':          new_id,
@@ -165,7 +163,7 @@ def update_woman(wid):
     global _women
     woman = next((w for w in _women if w['id'] == wid), None)
     if not woman:
-        return jsonify({'error': '׳׳ ׳ ׳׳¦׳׳”'}), 404
+        return jsonify({'error': 'לא נמצאה'}), 404
     data = request.json
     allowed = ['name','phone','hood','addr','status','unavailUntil']
     for key in allowed:
@@ -180,15 +178,15 @@ def mark_cant(wid):
     global _women
     woman = next((w for w in _women if w['id'] == wid), None)
     if not woman:
-        return jsonify({'error': '׳׳ ׳ ׳׳¦׳׳”'}), 404
+        return jsonify({'error': 'לא נמצאה'}), 404
     woman['status'] = 'unavail'
     woman['unavailUntil'] = (time.time() + 7 * 24 * 3600) * 1000
     sync_to_sheets(_women)
     return jsonify(woman)
 
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
-# ROUTES ג€” BIRTHS
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+# ══════════════════════════════════════════
+# ROUTES — BIRTHS
+# ══════════════════════════════════════════
 @app.route('/api/births', methods=['GET'])
 def get_births():
     return jsonify(_births)
@@ -198,9 +196,9 @@ def add_birth():
     global _women, _births
     data = request.json
     if not data.get('name'):
-        return jsonify({'error': '׳—׳¡׳¨ ׳©׳ ׳™׳•׳׳“׳×'}), 400
+        return jsonify({'error': 'חסר שם יולדת'}), 400
     if not data.get('teamIds') or len(data['teamIds']) < 1:
-        return jsonify({'error': '׳ ׳ ׳׳‘׳—׳•׳¨ ׳׳₪׳—׳•׳× ׳׳™׳©׳” ׳׳—׳×'}), 400
+        return jsonify({'error': 'נא לבחור לפחות אישה אחת'}), 400
 
     # mark mother as birth
     mother = next((w for w in _women if w['name'] == data['name']), None)
@@ -225,12 +223,12 @@ def replace_team_member(bid):
     global _women, _births
     birth = next((b for b in _births if b['id'] == bid), None)
     if not birth:
-        return jsonify({'error': '׳׳™׳“׳” ׳׳ ׳ ׳׳¦׳׳”'}), 404
+        return jsonify({'error': 'לידה לא נמצאה'}), 404
 
     data = request.json
     old_id = data.get('oldId')
     if not old_id:
-        return jsonify({'error': '׳—׳¡׳¨ oldId'}), 400
+        return jsonify({'error': 'חסר oldId'}), 400
 
     # mark old member cant
     old_w = next((w for w in _women if w['id'] == old_id), None)
@@ -238,7 +236,7 @@ def replace_team_member(bid):
         old_w['status'] = 'unavail'
         old_w['unavailUntil'] = (time.time() + 7 * 24 * 3600) * 1000
 
-    # find replacement ג€” available, not in team
+    # find replacement — available, not in team
     replacement = next(
         (w for w in _women
          if w['status'] == 'available' and w['id'] not in birth['teamIds']),
@@ -251,9 +249,9 @@ def replace_team_member(bid):
     sync_to_sheets(_women)
     return jsonify({'birth': birth, 'replacement': replacement})
 
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
-# ROUTES ג€” SYNC
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+# ══════════════════════════════════════════
+# ROUTES — SYNC
+# ══════════════════════════════════════════
 @app.route('/api/sync', methods=['POST'])
 def sync_from_sheets():
     """Reload women from Google Sheets."""
@@ -262,7 +260,7 @@ def sync_from_sheets():
     if data is not None:
         _women = data
         return jsonify({'ok': True, 'count': len(_women)})
-    return jsonify({'ok': False, 'message': 'Google Sheets ׳׳ ׳׳•׳’׳“׳¨'}), 200
+    return jsonify({'ok': False, 'message': 'Google Sheets לא מוגדר'}), 200
 
 @app.route('/api/health', methods=['GET'])
 def health():
@@ -274,7 +272,7 @@ def health():
         'time': datetime.now().isoformat()
     })
 
-# ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+# ══════════════════════════════════════════
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5050))
     app.run(host='0.0.0.0', port=port, debug=os.getenv('FLASK_DEBUG','0')=='1')
