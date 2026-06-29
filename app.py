@@ -321,6 +321,11 @@ def add_birth():
     if mother:
         mother['status'] = 'birth'
 
+    # mark team members as cooking so they won't appear in future suggestions
+    for w in _women:
+        if w['id'] in data['teamIds']:
+            w['status'] = 'cooking'
+
     team_members = [
         {'id': w['id'], 'name': w['name'], 'phone': w.get('phone',''), 'hood': w.get('hood',''), 'addr': w.get('addr','')}
         for w in _women if w['id'] in data['teamIds']
@@ -341,7 +346,17 @@ def add_birth():
 
 @app.route('/api/births/<int:bid>', methods=['DELETE'])
 def delete_birth(bid):
-    global _births
+    global _births, _women
+    birth = next((b for b in _births if b['id'] == bid), None)
+    if birth:
+        # restore team members to available
+        for w in _women:
+            if w['id'] in birth.get('teamIds', []) and w['status'] == 'cooking':
+                w['status'] = 'available'
+        # restore mother
+        mother = next((w for w in _women if w['name'] == birth['name']), None)
+        if mother and mother['status'] == 'birth':
+            mother['status'] = 'available'
     _births = [b for b in _births if b['id'] != bid]
     return jsonify({'ok': True})
 
@@ -372,6 +387,7 @@ def replace_team_member(bid):
         None
     )
     if replacement:
+        replacement['status'] = 'cooking'
         birth['teamIds'] = [replacement['id'] if i == old_id else i
                             for i in birth['teamIds']]
         birth['team'] = [
@@ -404,8 +420,23 @@ def suggest_team():
         except:
             return '01/01/2000'
 
+    cutoff = datetime.now() - timedelta(days=14)
+
+    def cooked_recently(w):
+        d = w.get('lastCooked', '')
+        if not d:
+            return False
+        try:
+            parts = d.split('/')
+            cooked_date = datetime(int(parts[2]), int(parts[1]), int(parts[0]))
+            return cooked_date >= cutoff
+        except:
+            return False
+
     available = [w for w in _women
-                 if w['status'] == 'available' and w['id'] not in exclude_ids]
+                 if w['status'] == 'available'
+                 and w['id'] not in exclude_ids
+                 and not cooked_recently(w)]
 
     # prefer same neighborhood if specified
     if hood_filter:
