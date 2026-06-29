@@ -1,0 +1,13 @@
+{
+  "name": "סבב חסד — עמיחי רמלה",
+  "short_name": "סבב חסד",
+  "description": "ניהול בישולים ועזרה הדדית — גרעין תורני עמיחי רמלה",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#7C3AED",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": []
+}
