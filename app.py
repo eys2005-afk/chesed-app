@@ -543,6 +543,31 @@ def sync_from_sheets():
         return jsonify({'ok': True, 'count': len(_women)})
     return jsonify({'ok': False, 'message': 'Google Sheets לא מוגדר'}), 200
 
+@app.route('/api/debug-phones', methods=['GET'])
+def debug_phones():
+    _, sh = get_sheets_client()
+    if not sh:
+        return jsonify({'error': 'no sheets'})
+    try:
+        tabs = [w.title for w in sh.worksheets()]
+        contact_tab = next((w for w in sh.worksheets() if 'קשר' in w.title), None)
+        if not contact_tab:
+            return jsonify({'tabs': tabs, 'error': 'no contact tab found'})
+        rows = contact_tab.get_all_values()
+        missing_phones = [w['name'] for w in _women if not w['phone']]
+        with_phones = [{'name': w['name'], 'phone': w['phone']} for w in _women if w['phone']][:5]
+        return jsonify({
+            'tab_name': contact_tab.title,
+            'header': rows[0] if rows else [],
+            'sample_rows': rows[1:4],
+            'total_contact_rows': len(rows) - 1,
+            'missing_phones_count': len(missing_phones),
+            'missing_sample': missing_phones[:10],
+            'with_phones_sample': with_phones,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 @app.route('/api/health', methods=['GET'])
 def health():
     sa_json = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON', '')
