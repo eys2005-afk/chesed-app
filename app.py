@@ -334,6 +334,7 @@ def update_woman(wid):
         if key in data:
             woman[key] = data[key]
     sync_to_sheets_bg(_women)
+    save_app_data_bg()
     return jsonify(woman)
 
 @app.route('/api/women/<int:wid>/cant', methods=['POST'])
@@ -346,6 +347,7 @@ def mark_cant(wid):
     woman['status'] = 'unavail'
     woman['unavailUntil'] = (time.time() + 7 * 24 * 3600) * 1000
     sync_to_sheets_bg(_women)
+    save_app_data_bg()
     return jsonify(woman)
 
 # ══════════════════════════════════════════
