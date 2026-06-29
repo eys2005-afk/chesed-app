@@ -410,13 +410,25 @@ function openStatModal(type) {
   const titles={all:'כל החברות',unavail:'לא זמינות',birth:'לידות פעילות'};
   const filtered = type==='all' ? women : women.filter(w=>w.status===(type==='birth'?'birth':'unavail'));
   document.getElementById('stat-modal-title').textContent = titles[type];
-  document.getElementById('stat-modal-list').innerHTML = filtered.length ? filtered.map(w=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+  document.getElementById('stat-modal-list').innerHTML = filtered.length ? filtered.map(w=>{
+    const restoreBtn = (type==='unavail')
+      ? `<button onclick="restoreAvailable(${w.id})" style="font-family:'Heebo',sans-serif;font-size:11px;background:var(--teal-light);color:var(--teal-dark);border:1px solid var(--teal);border-radius:8px;padding:4px 10px;cursor:pointer;">✅ החזר לזמינות</button>`
+      : '';
+    const until = w.unavailUntil ? `עד ${new Date(w.unavailUntil).toLocaleDateString('he-IL')}` : '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
       <div class="woman-avatar" style="width:34px;height:34px;font-size:13px;">${w.name[0]}</div>
-      <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${w.name}</div><div style="font-size:11px;color:var(--text-light);">${w.phone}</div></div>
-      <div class="hood-badge">${w.hood}</div>
-    </div>`).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">אין נשים בקטגוריה זו</div>';
+      <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${w.name}</div><div style="font-size:11px;color:var(--text-light);">${until||w.phone}</div></div>
+      ${restoreBtn||`<div class="hood-badge">${w.hood}</div>`}
+    </div>`;
+  }).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">אין נשים בקטגוריה זו</div>';
   openModal('stat-modal');
+}
+
+async function restoreAvailable(id) {
+  await apiFetch(`/api/women/${id}`, {method:'PATCH', body:JSON.stringify({status:'available',unavailUntil:null})});
+  await loadWomen();
+  openStatModal('unavail');
+  toast('✅ הוחזרה לרשימה הזמינות');
 }
 
 // ══════════════════════════════════════════
@@ -531,9 +543,11 @@ function birthCardHTML(b) {
     : women.filter(w=>b.teamIds.includes(w.id));
   const addr = b.addr || (women.find(w=>w.name===b.name)||{}).addr || '';
   const dateStr = b.date ? b.date.split('-').reverse().join('.') : '—';
+  const lastName = b.name.split(' ').slice(1).join(' ') || b.name;
+  const motherPhone = b.motherPhone || '';
   const members = team.map(w=>{
-    const msgAsk = `שלום ${w.name.split(' ')[0]}, האם תוכלי לבשל עבור ${b.name} (ילדה ב-${dateStr})?`;
-    const msgReminder = `שלום ${w.name.split(' ')[0]}, תזכורת לבישול עבור ${b.name}${addr?' — כתובת: '+addr:''}. תודה רבה! 🙏`;
+    const msgAsk = `מזל טוב לקהילת עמיחי רמלה להולדת צאצא נוסף למשפחת ${lastName}! 👶🍼\nכחלק מפרויקט החסד הקהילתי 'עזרה הדדית' נשמח אם תוכלי לבשל למשפחה משהו בשבת הקרובה. תוכלי?\nאם כן אצרף אותך לקבוצת וואטסאפ של כל מי שמבשלות להם השבת ותכתבי בבקשה מה את מכינה להן כדי שלא יהיו כפילויות (בד"כ מכינים: משהו בשרי/תפוחי אדמה ואורז/ ירק מבושל כלשהו/ דגים/ עוגה).\nתודה גדולה ושיהיה בעז"ה בשמחות אצל כולם!`;
+    const msgReminder = `תודה גדולה על העזרה בבישולים למשפחת ${lastName}!\nזה ישמח אותם ויעזור להם מאד!\nמזכירה להביא להם את האוכל לפני שבת כדאי כמה שיותר מוקדם.\n(אם אתם מתעכבים מומלץ לשלוח להם הודעה שתגיעו בהמשך כדי שלא ילחצו..)\n${addr?'הכתובת שלהם: '+addr+'.\n':''}${motherPhone?'מס הטלפון שלהם: '+motherPhone+'.\n':''}יישר כח ובשמחות תמיד!`;
     const msgFree = `שלום ${w.name.split(' ')[0]}, `;
     return `<div class="selected-member" style="flex-direction:column;align-items:stretch;gap:6px;">
       <div style="display:flex;align-items:center;gap:8px;">
