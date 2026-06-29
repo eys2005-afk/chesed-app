@@ -217,14 +217,16 @@ def enrich_phones_from_contact_tab(women_list):
     try:
         ws = sh.worksheet('דף קשר גרעין')
         rows = ws.get_all_values()
-        # col 0 = name, col 5 (F) = wife's mobile phone
+        # col 0 = name (family + husband + וwife), col 3 (D) = נייד אשה
         contact_map = []
         for row in rows[1:]:
             full_name = row[0].strip() if len(row) > 0 else ''
-            phone     = row[5].strip() if len(row) > 5 else ''
+            phone     = row[3].strip() if len(row) > 3 else ''
             if full_name and phone:
                 words = set(full_name.split())
-                contact_map.append((words, phone))
+                # strip ו prefix (e.g. ואביה → אביה) so names match
+                words_clean = {w[1:] if w.startswith('ו') and len(w) > 1 else w for w in words}
+                contact_map.append((words | words_clean, phone))
 
         filled = 0
         for w in women_list:
