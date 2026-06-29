@@ -534,6 +534,7 @@ async function confirmBirth() {
 
 function waLink(phone, msg) {
   const num = phone.replace(/[^0-9]/g,'').replace(/^0/,'972');
+  if(num.length < 10) return `javascript:alert('אין מספר טלפון לאישה זו')`;
   return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
 }
 
