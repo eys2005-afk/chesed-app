@@ -209,6 +209,48 @@ def load_cooking_history():
         print(f"Cooking history load error: {e}")
         return {}
 
+def enrich_phones_from_contact_tab(women_list):
+    """One-time: fill missing phones from דף קשר גרעין tab by name matching."""
+    _, sh = get_sheets_client()
+    if not sh:
+        return
+    try:
+        ws = sh.worksheet('דף קשר גרעין')
+        rows = ws.get_all_values()
+        # col 0 = name, col 2 = mobile1, col 3 = mobile2
+        contact_map = []
+        for row in rows[1:]:
+            full_name = row[0].strip() if len(row) > 0 else ''
+            mobile1   = row[2].strip() if len(row) > 2 else ''
+            mobile2   = row[3].strip() if len(row) > 3 else ''
+            phone = mobile1 or mobile2
+            if full_name and phone:
+                words = set(full_name.split())
+                contact_map.append((words, phone))
+
+        filled = 0
+        for w in women_list:
+            if w['phone']:
+                continue
+            w_words = set(w['name'].split())
+            for contact_words, phone in contact_map:
+                # match if at least 2 words overlap (handles different name orders)
+                if len(w_words & contact_words) >= 2:
+                    w['phone'] = phone
+                    filled += 1
+                    break
+            else:
+                # fallback: match if any single word overlaps (for short names)
+                if len(w_words) == 1:
+                    for contact_words, phone in contact_map:
+                        if w_words & contact_words:
+                            w['phone'] = phone
+                            filled += 1
+                            break
+        print(f"Phone enrichment: filled {filled} missing phones from דף קשר גרעין")
+    except Exception as e:
+        print(f"Phone enrichment error: {e}")
+
 def load_from_sheets():
     """Load women list from רשימת משפחות הגרעין + cooking history."""
     _, sh = get_sheets_client()
@@ -274,6 +316,7 @@ _births = []
 _loaded = load_from_sheets()
 if _loaded:
     _women = _loaded
+    enrich_phones_from_contact_tab(_women)
 
 # Restore births + status overrides from previous session
 load_app_data()
