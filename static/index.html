@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>סבב חסד - עמיחי רמלה</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f0f4f8; direction: rtl; min-height: 100vh; }
+
+    .header {
+      background: linear-gradient(135deg, #1a3d6b, #2471a3);
+      color: white; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-logo {
+      width: 46px; height: 46px; background: white; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .header-title h1 { font-size: 19px; font-weight: 700; }
+    .header-title p { font-size: 12px; opacity: 0.75; margin-top: 1px; }
+
+    .tabs {
+      display: flex; background: white;
+      border-bottom: 2px solid #e8ecf0;
+      position: sticky; top: 74px; z-index: 99;
+    }
+    .tab {
+      flex: 1; padding: 13px 4px; text-align: center;
+      cursor: pointer; font-size: 14px; font-weight: 500;
+      border: none; background: transparent; font-family: inherit;
+      color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab.active { color: #1a3d6b; font-weight: 700; border-bottom-color: #1a3d6b; }
+
+    .main { padding: 14px; max-width: 480px; margin: 0 auto; }
+
+    .card {
+      background: white; border-radius: 16px; padding: 18px;
+      margin-bottom: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    }
+    .card-title {
+      font-size: 15px; font-weight: 700; color: #1a3d6b;
+      margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
+    }
+
+    .birth-active { background: linear-gradient(135deg, #e8f8ee, #d4edda); border: 2px solid #4caf50; }
+    .birth-name { font-size: 21px; font-weight: 700; color: #1e7e34; margin-bottom: 3px; }
+    .birth-time { font-size: 12px; color: #666; margin-bottom: 14px; }
+    .team-label { font-size: 13px; font-weight: 700; color: #444; margin-bottom: 8px; }
+    .team-member {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 13px; border-radius: 10px;
+      background: rgba(255,255,255,0.7); margin-bottom: 7px;
+      border: 1px solid #c3e6cb;
+    }
+    .member-name { font-weight: 600; font-size: 15px; }
+    .member-sub { font-size: 12px; color: #777; margin-top: 2px; }
+    .btn-cannot {
+      background: #dc3545; color: white; border: none;
+      border-radius: 8px; padding: 7px 11px; font-size: 12px;
+      cursor: pointer; font-family: inherit; font-weight: 600;
+    }
+
+    .btn {
+      width: 100%; padding: 13px; border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: opacity 0.15s, transform 0.1s; margin-bottom: 9px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn:last-child { margin-bottom: 0; }
+    .btn:active { transform: scale(0.97); opacity: 0.9; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: #1a3d6b; color: white; }
+    .btn-whatsapp { background: #25d366; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-secondary { background: #e9ecef; color: #495057; }
+    .btn-outline { background: transparent; color: #1a3d6b; border: 2px solid #1a3d6b; }
+
+    .no-birth { text-align: center; padding: 28px 20px; color: #aaa; }
+    .no-birth-icon { font-size: 44px; margin-bottom: 10px; }
+    .no-birth-text { font-size: 15px; margin-bottom: 4px; color: #888; }
+
+    .hood-filters { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+    .hood-btn {
+      padding: 5px 13px; border-radius: 20px; border: 1.5px solid #d0d8e4;
+      background: white; font-size: 12px; cursor: pointer; font-family: inherit;
+      color: #555; transition: all 0.15s; font-weight: 500;
+    }
+    .hood-btn.active { background: #1a3d6b; color: white; border-color: #1a3d6b; }
+
+    .woman-item {
+      display: flex; align-items: center; padding: 11px 12px;
+      border-radius: 10px; margin-bottom: 7px; border: 1.5px solid #e8ecf0;
+      cursor: pointer; transition: all 0.15s; background: white;
+    }
+    .woman-item:hover { background: #f5f8fc; }
+    .woman-item.selected { background: #eaf2fb; border-color: #1a3d6b; }
+    .woman-item.unavailable { opacity: 0.45; pointer-events: none; }
+    .woman-check { margin-left: 11px; width: 18px; height: 18px; accent-color: #1a3d6b; flex-shrink: 0; }
+    .woman-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #1a3d6b, #2471a3);
+      color: white; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; margin-left: 10px; flex-shrink: 0;
+    }
+    .woman-info { flex: 1; min-width: 0; }
+    .woman-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .woman-details { font-size: 11px; color: #999; margin-top: 2px; }
+    .woman-badge {
+      background: #eaf2fb; color: #1a3d6b;
+      border-radius: 12px; padding: 2px 8px;
+      font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0;
+    }
+    .woman-badge.high { background: #fdecea; color: #c62828; }
+    .unavail-tag { font-size: 10px; color: #dc3545; margin-top: 2px; font-weight: 600; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-card {
+      background: #f5f8fc; border-radius: 12px; padding: 16px 12px;
+      text-align: center; cursor: pointer; border: 1.5px solid #e0e8f0; transition: all 0.15s;
+    }
+    .stat-card:hover { background: #eaf2fb; border-color: #1a3d6b; }
+    .stat-number { font-size: 30px; font-weight: 700; color: #1a3d6b; line-height: 1; }
+    .stat-label { font-size: 12px; color: #777; margin-top: 5px; }
+    .hood-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 11px 0; border-bottom: 1px solid #f0f0f0;
+    }
+    .hood-row:last-child { border-bottom: none; }
+
+    .selected-bar {
+      background: #eaf2fb; border-radius: 8px; padding: 10px 14px;
+      font-size: 14px; color: #1a3d6b; margin-bottom: 12px;
+      text-align: center; font-weight: 600; transition: background 0.2s;
+    }
+    .selected-bar.ready { background: #d4edda; color: #1e7e34; }
+
+    .modal-overlay {
+      display: none; position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white; border-radius: 22px 22px 0 0;
+      padding: 20px; width: 100%; max-height: 80vh; overflow-y: auto;
+    }
+    .modal-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
+    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 14px; color: #1a3d6b; }
+    .modal-item { padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    .modal-item:last-child { border-bottom: none; }
+
+    .input-field {
+      width: 100%; padding: 12px 14px; border: 1.5px solid #dde3ea;
+      border-radius: 10px; font-size: 15px; font-family: inherit;
+      direction: rtl; margin-bottom: 12px; outline: none;
+    }
+    .input-field:focus { border-color: #1a3d6b; }
+    .input-field::placeholder { color: #bbb; }
+
+    .add-form { display: none; border-top: 1px solid #eee; margin-top: 14px; padding-top: 14px; }
+    .add-form.open { display: block; }
+    select.input-field { appearance: none; background: white; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a3d6b; color: white;
+      padding: 11px 22px; border-radius: 24px; font-size: 14px;
+      z-index: 500; opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">🤝</div>
+  <div class="header-title">
+    <h1>סבב חסד</h1>
+    <p>גרעין עמיחי רמלה</p>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="birth">👶 לידה</button>
+  <button class="tab" data-tab="women">👥 נשים</button>
+  <button class="tab" data-tab="stats">📊 סטטיסטיקה</button>
+</div>
+
+<div class="main">
+  <div id="tab-birth" class="section active">
+    <div id="birth-content"></div>
+  </div>
+  <div id="tab-women" class="section">
+    <div class="card">
+      <div class="card-title">👥 רשימת נשים</div>
+      <div class="hood-filters" id="list-filters"></div>
+      <div id="women-list"></div>
+      <button class="btn btn-outline" style="margin-top:8px" id="add-form-btn" onclick="toggleAddForm()">＋ הוספת אישה</button>
+      <div class="add-form" id="add-form">
+        <input class="input-field" id="new-name" placeholder="שם מלא" />
+        <input class="input-field" id="new-phone" placeholder="טלפון" type="tel" />
+        <select class="input-field" id="new-hood"></select>
+        <button class="btn btn-primary" onclick="addWoman()">שמירה</button>
+      </div>
+    </div>
+  </div>
+  <div id="tab-stats" class="section">
+    <div class="card">
+      <div class="card-title">📊 סיכום</div>
+      <div class="stats-grid" id="stats-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏘️ לפי שכונה</div>
+      <div id="neighborhood-stats"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="team-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👥 בחירת צוות</div>
+    <div class="selected-bar" id="sel-bar">לא נבחרו נשים</div>
+    <div class="hood-filters" id="modal-filters"></div>
+    <div id="modal-list"></div>
+    <button class="btn btn-success" id="confirm-btn" onclick="confirmTeam()" disabled>אישור צוות</button>
+    <button class="btn btn-secondary" onclick="closeModal('team-modal')">ביטול</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="detail-title"></div>
+    <div id="detail-content"></div>
+    <button class="btn btn-secondary" style="margin-top:14px" onclick="closeModal('detail-modal')">סגור</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const HOODS = ['עמישב', 'שכונות', 'נאות שמיר', 'רמבלס', 'הרדוף'];
+let womenData = [], activeBirth = null, currentTeam = [];
+let selectedIds = [], listFilter = 'all', modalFilter = 'all';
+let toastEl, toastTimeout;
+
+async function init() {
+  buildHoodFilters('list-filters', h => { listFilter = h; renderWomenList(); });
+  buildHoodFilters('modal-filters', h => { modalFilter = h; renderModalList(); });
+  buildHoodSelect();
+  setupTabs();
+  setupModalClose();
+  await refresh();
+}
+
+async function refresh() {
+  try {
+    const [wr, br] = await Promise.all([fetch('/api/women'), fetch('/api/birth')]);
+    womenData = await wr.json();
+    const bd = await br.json();
+    activeBirth = bd.active_birth;
+    currentTeam = bd.team || [];
+    renderBirth();
+    renderWomenList();
+  } catch(e) { showToast('שגיאה בטעינת נתונים'); }
+}
+
+function renderBirth() {
+  const el = document.getElementById('birth-content');
+  if (activeBirth) {
+    const team = currentTeam.map(id => womenData.find(w => w.id === id)).filter(Boolean);
+    el.innerHTML = `
+      <div class="card birth-active">
+        <div class="card-title">👶 לידה פעילה</div>
+        <div class="birth-name">${esc(activeBirth.mother_name || 'לידה')}</div>
+        <div class="birth-time">${fmtDate(activeBirth.date)}</div>
+        <div class="team-label">הצוות התורן:</div>
+        ${team.map(w => `
+          <div class="team-member">
+            <div>
+              <div class="member-name">${esc(w.name)}</div>
+              <div class="member-sub">${esc(w.neighborhood)} &middot; ${esc(w.phone)}</div>
+            </div>
+            <button class="btn-cannot" onclick="cannotServe(${w.id},this)">לא יכולה</button>
+          </div>`).join('')}
+        <div style="margin-top:16px">
+          <button class="btn btn-whatsapp" onclick="sendWhatsApp()">📱 שלחי הודעה לצוות</button>
+          <button class="btn btn-danger" onclick="completeBirth()">✔ סיום לידה</button>
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="card">
+        <div class="no-birth">
+          <div class="no-birth-icon">🖤</div>
+          <div class="no-birth-text">אין לידה פעילה כרגע</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">👶 פתיחת לידה חדשה</div>
+        <input class="input-field" id="mother-name" placeholder="שם היולדת (אופציונלי)" />
+        <button class="btn btn-primary" onclick="openTeamModal()">👥 בחירת צוות</button>
+      </div>`;
+  }
+}
+
+async function cannotServe(wid, btn) {
+  const w = womenData.find(w => w.id === wid);
+  if (!confirm(`${w ? w.name : ''} לא יכולה?\nתחפש מחליפה אוטומטית.`)) return;
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/cannot', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({woman_id: wid})
+    });
+    const d = await r.json();
+    if (d.success) { showToast(`${d.replacement.name} תחליף! 🙏`); await refresh(); }
+    else showToast(d.message || 'לא נמצאה מחליפה');
+  } catch(e) { showToast('שגיאה'); btn.disabled = false; }
+}
+
+function sendWhatsApp() {
+  const team = currentTeam.map(id => womenData.find(w => w.id === id)).filter(Boolean);
+  const name = activeBirth?.mother_name;
+  const msg = `שלום! 👶\nיש לידה פעילה${name && name !== 'לידה חדשה' ? ` - ${name}` : ''}!\n\nהצוות התורן:\n` +
+    team.map((w, i) => `${i+1}. ${w.name} - ${w.phone}`).join('\n') +
+    '\n\nתודה רבה! 🙏';
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+async function completeBirth() {
+  if (!confirm('לסיים את הלידה?')) return;
+  await fetch('/api/complete', {method: 'POST'});
+  await refresh();
+  showToast('הלידה הסתיימה. מזל טוב! 🎉');
+}
+
+function openTeamModal() {
+  selectedIds = []; modalFilter = 'all';
+  document.querySelectorAll('#modal-filters .hood-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  renderModalList(); updateSelBar();
+  document.getElementById('team-modal').classList.add('open');
+}
+
+function renderModalList() {
+  const list = document.getElementById('modal-list');
+  const women = modalFilter === 'all' ? womenData : womenData.filter(w => w.neighborhood === modalFilter);
+  list.innerHTML = women.map(w => {
+    const sel = selectedIds.includes(w.id), dis = !w.available || currentTeam.includes(w.id);
+    return `
+      <div class="woman-item${sel?' selected':''}${dis?' unavailable':''}" onclick="toggleWoman(${w.id})">
+        <input type="checkbox" class="woman-check" ${sel?'checked':''} onclick="event.stopPropagation();toggleWoman(${w.id})">
+        <div class="woman-avatar">${esc(w.name.charAt(0))}</div>
+        <div class="woman-info">
+          <div class="woman-name">${esc(w.name)}</div>
+          <div class="woman-details">${esc(w.neighborhood)}</div>
+        </div>
+        <span class="woman-badge${w.times_served>=5?' high':''}">${w.times_served} סבבים</span>
+      </div>`;
+  }).join('');
+}
+
+function toggleWoman(id) {
+  const w = womenData.find(w => w.id === id);
+  if (!w || !w.available || currentTeam.includes(id)) return;
+  const idx = selectedIds.indexOf(id);
+  if (idx >= 0) selectedIds.splice(idx, 1); else selectedIds.push(id);
+  renderModalList(); updateSelBar();
+}
+
+function updateSelBar() {
+  const n = selectedIds.length, bar = document.getElementById('sel-bar'), btn = document.getElementById('confirm-btn');
+  bar.textContent = n === 0 ? 'לא נבחרו נשים' : `נבחרו ${n} נשים${n>=3?' ✔':' (מומלץ לפחות 3)'}`;
+  bar.className = n >= 3 ? 'selected-bar ready' : 'selected-bar';
+  btn.disabled = n === 0;
+}
+
+async function confirmTeam() {
+  if (!selectedIds.length) return;
+  const name = document.getElementById('mother-name')?.value?.trim() || 'לידה חדשה';
+  try {
+    const r = await fetch('/api/birth', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({mother_name: name, team: selectedIds})
+    });
+    const d = await r.json();
+    if (d.success) {
+      closeModal('team-modal'); await refresh();
+      switchTab('birth'); showToast('הצוות נבחר! 🎉');
+    }
+  } catch(e) { showToast('שגיאה בשמירה'); }
+}
+
+function renderWomenList() {
+  const el = document.getElementById('women-list'); if (!el) return;
+  const women = listFilter === 'all' ? womenData : womenData.filter(w => w.neighborhood === listFilter);
+  el.innerHTML = women.map(w => `
+    <div class="woman-item${!w.available?' unavailable':''}">
+      <div class="woman-avatar">${esc(w.name.charAt(0))}</div>
+      <div class="woman-info">
+        <div class="woman-name">${esc(w.name)}</div>
+        <div class="woman-details">${esc(w.neighborhood)} &middot; ${esc(w.phone)}</div>
+        ${!w.available?`<div class="unavail-tag">לא זמינה עד ${fmtDate(w.unavailable_until)}</div>`:''}
+      </div>
+      <span class="woman-badge${w.times_served>=5?' high':''}">${w.times_served} סבבים</span>
+    </div>`).join('');
+}
+
+let addFormOpen = false;
+function toggleAddForm() {
+  addFormOpen = !addFormOpen;
+  document.getElementById('add-form').classList.toggle('open', addFormOpen);
+  document.getElementById('add-form-btn').textContent = addFormOpen ? '✕ ביטול' : '＋ הוספת אישה';
+}
+
+function buildHoodSelect() {
+  const s = document.getElementById('new-hood'); if (!s) return;
+  s.innerHTML = HOODS.map(h => `<option value="${h}">${h}</option>`).join('');
+}
+
+async function addWoman() {
+  const name = document.getElementById('new-name').value.trim();
+  const phone = document.getElementById('new-phone').value.trim();
+  const hood = document.getElementById('new-hood').value;
+  if (!name) { showToast('יש להזין שם'); return; }
+  try {
+    const r = await fetch('/api/women', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, phone, neighborhood: hood})
+    });
+    const d = await r.json();
+    if (d.success) {
+      document.getElementById('new-name').value = '';
+      document.getElementById('new-phone').value = '';
+      toggleAddForm(); await refresh();
+      showToast(`${name} נוספה!`);
+    }
+  } catch(e) { showToast('שגיאה'); }
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats');
+    renderStats(await r.json());
+  } catch(e) {}
+}
+
+function renderStats(s) {
+  const grid = document.getElementById('stats-grid');
+  if (grid) {
+    grid.innerHTML = [
+      {num: s.total_women, label: 'סה"כ נשים', color: '', data: () => womenData.map(w => ({primary: w.name, secondary: w.neighborhood+' · '+w.times_served+' סבבים'})), title: 'כל הנשים'},
+      {num: s.available, label: 'זמינות', color: '#28a745', data: () => womenData.filter(w=>w.available).map(w=>({primary:w.name,secondary:w.neighborhood})), title: 'נשים זמינות'},
+      {num: s.unavailable, label: 'לא זמינות', color: '#dc3545', data: () => (s.unavailable_list||[]).map(w=>({primary:w.name,secondary:'עד '+fmtDate(w.unavailable_until)})), title: 'לא זמינות'},
+      {num: s.total_served, label: 'סה"כ סבבים', color: '#7b1fa2', data: () => (s.top_servers||[]).map((w,i)=>({primary:['🥇','🥈','🥉','4.','5.'][i]+' '+w.name,secondary:w.times_served+' סבבים'})), title: 'מובילות בסבבים'}
+    ].map((item, i) => `
+      <div class="stat-card" data-stat="${i}">
+        <div class="stat-number" style="${item.color?'color:'+item.color:''}">${item.num}</div>
+        <div class="stat-label">${item.label}</div>
+      </div>`).join('');
+    grid.querySelectorAll('.stat-card').forEach((card, i) => {
+      const items = [{num:s.total_women,label:'סה"כ נשים',color:'',data:()=>womenData.map(w=>({primary:w.name,secondary:w.neighborhood+' · '+w.times_served+' סבבים'})),title:'כל הנשים'},{num:s.available,label:'זמינות',color:'#28a745',data:()=>womenData.filter(w=>w.available).map(w=>({primary:w.name,secondary:w.neighborhood})),title:'נשים זמינות'},{num:s.unavailable,label:'לא זמינות',color:'#dc3545',data:()=>(s.unavailable_list||[]).map(w=>({primary:w.name,secondary:'עד '+fmtDate(w.unavailable_until)})),title:'לא זמינות'},{num:s.total_served,label:'סה"כ סבבים',color:'#7b1fa2',data:()=>(s.top_servers||[]).map((w,i)=>({primary:['🥇','🥈','🥉','4.','5.'][i]+' '+w.name,secondary:w.times_served+' סבבים'})),title:'מובילות בסבבים'}];
+      card.onclick = () => showDetail(items[i].title, items[i].data());
+    });
+  }
+  const ns = document.getElementById('neighborhood-stats');
+  if (ns && s.by_neighborhood) {
+    ns.innerHTML = Object.entries(s.by_neighborhood).map(([n, d]) => `
+      <div class="hood-row">
+        <div>
+          <div style="font-weight:600;font-size:14px">${n}</div>
+          <div style="font-size:12px;color:#999">${d.available} מתוך ${d.total} זמינות</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:20px;font-weight:700;color:#1a3d6b">${d.times_served}</div>
+          <div style="font-size:11px;color:#aaa">סבבים</div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+function showDetail(title, items) {
+  document.getElementById('detail-title').textContent = title;
+  document.getElementById('detail-content').innerHTML = items.length
+    ? items.map(item => `<div class="modal-item"><div style="font-weight:600">${item.primary}</div>${item.secondary?`<div style="font-size:12px;color:#999;margin-top:2px">${item.secondary}</div>`:''}</div>`).join('')
+    : '<div style="color:#bbb;text-align:center;padding:20px">אין נתונים</div>';
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function buildHoodFilters(containerId, onChange) {
+  const c = document.getElementById(containerId); if (!c) return;
+  c.innerHTML = ['all', ...HOODS].map((h, i) => `<button class="hood-btn${i===0?' active':''}">${h==='all'?'הכל':h}</button>`).join('');
+  c.querySelectorAll('.hood-btn').forEach((btn, i) => {
+    const h = i === 0 ? 'all' : HOODS[i-1];
+    btn.onclick = () => {
+      c.querySelectorAll('.hood-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(h);
+    };
+  });
+}
+
+function setupTabs() {
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn));
+  });
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else document.querySelector(`.tab[data-tab="${name}"]`)?.classList.add('active');
+  if (name === 'stats') loadStats();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function setupModalClose() {
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  });
+}
+
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  catch(e) { return ''; }
+}
+
+function showToast(msg) {
+  if (!toastEl) toastEl = document.getElementById('toast');
+  toastEl.innerHTML = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 2800);
+}
+
+init();
+</script>
+</body>
+</html>
