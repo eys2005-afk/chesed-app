@@ -118,6 +118,8 @@ def get_sheets_client():
             sh.add_worksheet(title='נשים', rows=500, cols=10)
         if 'לידות' not in titles:
             sh.add_worksheet(title='לידות', rows=500, cols=10)
+        if 'APP_DATA' not in titles:
+            sh.add_worksheet(title='APP_DATA', rows=10, cols=2)
         return gc, sh
     except Exception as e:
         print(f"Sheets error: {e}")
@@ -143,6 +145,49 @@ def sync_to_sheets(women_data):
                            w.get('addr',''), w['status'], until])
     except Exception as e:
         print(f"Sheets sync error: {e}")
+
+def save_app_data_bg():
+    threading.Thread(target=_save_app_data, daemon=True).start()
+
+def _save_app_data():
+    """Persist births + women statuses to APP_DATA sheet so data survives redeploys."""
+    _, sh = get_sheets_client()
+    if not sh:
+        return
+    try:
+        ws = sh.worksheet('APP_DATA')
+        ws.clear()
+        # row 1: births JSON
+        ws.append_row(['births', json.dumps(_births, ensure_ascii=False)])
+        # row 2: status overrides {id: {status, unavailUntil}}
+        statuses = {str(w['id']): {'status': w['status'], 'unavailUntil': w.get('unavailUntil')}
+                    for w in _women if w['status'] != 'available' or w.get('unavailUntil')}
+        ws.append_row(['statuses', json.dumps(statuses, ensure_ascii=False)])
+    except Exception as e:
+        print(f"APP_DATA save error: {e}")
+
+def load_app_data():
+    """Load persisted births + status overrides on startup."""
+    global _births, _women
+    _, sh = get_sheets_client()
+    if not sh:
+        return
+    try:
+        ws = sh.worksheet('APP_DATA')
+        rows = ws.get_all_values()
+        data = {r[0]: r[1] for r in rows if len(r) >= 2}
+        if 'births' in data and data['births']:
+            _births = json.loads(data['births'])
+        if 'statuses' in data and data['statuses']:
+            statuses = json.loads(data['statuses'])
+            for w in _women:
+                s = statuses.get(str(w['id']))
+                if s:
+                    w['status'] = s['status']
+                    w['unavailUntil'] = s.get('unavailUntil')
+        print(f"APP_DATA loaded: {len(_births)} births, {len([w for w in _women if w['status']!='available'])} non-available women")
+    except Exception as e:
+        print(f"APP_DATA load error: {e}")
 
 def load_cooking_history():
     """Load last cooking date per family from תאריך בישול אחרון tab.
@@ -229,6 +274,9 @@ _births = []
 _loaded = load_from_sheets()
 if _loaded:
     _women = _loaded
+
+# Restore births + status overrides from previous session
+load_app_data()
 
 def check_unavail_expiry(women):
     now_ms = time.time() * 1000
@@ -342,6 +390,7 @@ def add_birth():
     }
     _births.insert(0, birth)
     sync_to_sheets_bg(_women)
+    save_app_data_bg()
     return jsonify(birth), 201
 
 @app.route('/api/births/<int:bid>', methods=['DELETE'])
@@ -358,6 +407,7 @@ def delete_birth(bid):
         if mother and mother['status'] == 'birth':
             mother['status'] = 'available'
     _births = [b for b in _births if b['id'] != bid]
+    save_app_data_bg()
     return jsonify({'ok': True})
 
 @app.route('/api/births/<int:bid>/replace', methods=['POST'])
@@ -396,6 +446,7 @@ def replace_team_member(bid):
         ]
 
     sync_to_sheets_bg(_women)
+    save_app_data_bg()
     return jsonify({'birth': birth, 'replacement': replacement})
 
 # ══════════════════════════════════════════
