@@ -532,10 +532,13 @@ async function confirmBirth() {
   toast('✅ לידה נרשמה בהצלחה');
 }
 
-function openWA(phone, msg) {
+const _waStore = {};
+function sendWA(key) {
+  const {phone, msg} = _waStore[key] || {};
+  if(!phone) { alert('אין מספר טלפון לאישה זו'); return; }
   const num = phone.replace(/[^0-9]/g,'').replace(/^0/,'972');
-  if(num.length < 10) { alert('אין מספר טלפון לאישה זו'); return; }
-  window.location.href = `whatsapp://send?phone=${num}&text=${encodeURIComponent(msg)}`;
+  if(num.length < 10) { alert('מספר טלפון לא תקין'); return; }
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function birthCardHTML(b) {
@@ -550,6 +553,12 @@ function birthCardHTML(b) {
     const msgAsk = `מזל טוב לקהילת עמיחי רמלה להולדת צאצא נוסף למשפחת ${lastName}! 👶🍼\nכחלק מפרויקט החסד הקהילתי 'עזרה הדדית' נשמח אם תוכלי לבשל למשפחה משהו בשבת הקרובה. תוכלי?\nאם כן אצרף אותך לקבוצת וואטסאפ של כל מי שמבשלות להם השבת ותכתבי בבקשה מה את מכינה להן כדי שלא יהיו כפילויות (בד"כ מכינים: משהו בשרי/תפוחי אדמה ואורז/ ירק מבושל כלשהו/ דגים/ עוגה).\nתודה גדולה ושיהיה בעז"ה בשמחות אצל כולם!`;
     const msgReminder = `תודה גדולה על העזרה בבישולים למשפחת ${lastName}!\nזה ישמח אותם ויעזור להם מאד!\nמזכירה להביא להם את האוכל לפני שבת כדאי כמה שיותר מוקדם.\n(אם אתם מתעכבים מומלץ לשלוח להם הודעה שתגיעו בהמשך כדי שלא ילחצו..)\n${addr?'הכתובת שלהם: '+addr+'.\n':''}${motherPhone?'מס הטלפון שלהם: '+motherPhone+'.\n':''}יישר כח ובשמחות תמיד!`;
     const msgFree = `שלום ${w.name.split(' ')[0]}, `;
+    const kAsk = `${b.id}_${w.id}_ask`;
+    const kFree = `${b.id}_${w.id}_free`;
+    const kRem  = `${b.id}_${w.id}_rem`;
+    _waStore[kAsk] = {phone: w.phone, msg: msgAsk};
+    _waStore[kFree] = {phone: w.phone, msg: msgFree};
+    _waStore[kRem]  = {phone: w.phone, msg: msgReminder};
     return `<div class="selected-member" style="flex-direction:column;align-items:stretch;gap:6px;">
       <div style="display:flex;align-items:center;gap:8px;">
         <div class="member-avatar">${w.name[0]}</div>
@@ -558,9 +567,9 @@ function birthCardHTML(b) {
         <button class="cant-btn" onclick="openCantModal(${w.id},'${w.name.replace(/'/g,"\\'")}',${b.id})">לא יכולה</button>
       </div>
       <div style="display:flex;gap:6px;padding-right:44px;">
-        <button onclick="openWA('${w.phone}',\`${msgAsk.replace(/`/g,"'")}\`)" style="flex:1;font-family:'Heebo',sans-serif;background:#25D366;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">🙋 יכולה?</button>
-        <button onclick="openWA('${w.phone}',\`${msgFree.replace(/`/g,"'")}\`)" style="flex:1;font-family:'Heebo',sans-serif;background:#128C7E;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">💬 חופשי</button>
-        <button onclick="openWA('${w.phone}',\`${msgReminder.replace(/`/g,"'")}\`)" style="flex:1;font-family:'Heebo',sans-serif;background:#075E54;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">⏰ תזכורת</button>
+        <button onclick="sendWA('${kAsk}')" style="flex:1;font-family:'Heebo',sans-serif;background:#25D366;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">🙋 יכולה?</button>
+        <button onclick="sendWA('${kFree}')" style="flex:1;font-family:'Heebo',sans-serif;background:#128C7E;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">💬 חופשי</button>
+        <button onclick="sendWA('${kRem}')" style="flex:1;font-family:'Heebo',sans-serif;background:#075E54;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">⏰ תזכורת</button>
       </div>
     </div>`;
   }).join('');
