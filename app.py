@@ -73,24 +73,35 @@ def sync_to_sheets(women_data):
         print(f"Sheets sync error: {e}")
 
 def load_from_sheets():
-    """Load women list from Google Sheets."""
+    """Load women list from רשימת משפחות הגרעין sheet."""
     _, sh = get_sheets_client()
     if not sh:
         return None
     try:
-        ws = sh.worksheet('נשים')
-        rows = ws.get_all_records()
+        ws = sh.worksheet('רשימת משפחות הגרעין')
+        rows = ws.get_all_values()
+        if not rows:
+            return None
         result = []
-        for r in rows:
+        wid = 1
+        for row in rows[1:]:  # skip header
+            name  = row[1].strip()  if len(row) > 1 else ''
+            phone = row[4].strip()  if len(row) > 4 else ''  # נייד אשה
+            hood  = row[5].strip()  if len(row) > 5 else ''
+            addr  = row[6].strip()  if len(row) > 6 else ''
+            delete= row[8].strip()  if len(row) > 8 else ''
+            if not name or delete == '#N/A' or delete.startswith('מחק'):
+                continue
             result.append({
-                'id':          r.get('ID'),
-                'name':        r.get('שם',''),
-                'phone':       r.get('טלפון',''),
-                'hood':        r.get('שכונה',''),
-                'addr':        r.get('כתובת',''),
-                'status':      r.get('סטטוס','available'),
+                'id':           wid,
+                'name':         name,
+                'phone':        phone,
+                'hood':         hood,
+                'addr':         addr,
+                'status':       'available',
                 'unavailUntil': None,
             })
+            wid += 1
         return result
     except Exception as e:
         print(f"Sheets load error: {e}")
@@ -113,6 +124,11 @@ _women = [
 ]
 
 _births = []
+
+# Load real women data from Sheets on startup
+_loaded = load_from_sheets()
+if _loaded:
+    _women = _loaded
 
 def check_unavail_expiry(women):
     now_ms = time.time() * 1000
