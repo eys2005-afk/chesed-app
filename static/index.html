@@ -240,24 +240,23 @@
     <div class="modal-title">👶 עדכון לידה</div>
     <div class="input-group">
       <label class="input-label">שם היולדת</label>
-      <input class="input-field" id="birth-name" placeholder="שם מלא">
+      <input class="input-field" id="birth-name-search" placeholder="חפשי שם..." oninput="filterMotherSearch()" autocomplete="off">
+      <div id="mother-dropdown" style="display:none;position:absolute;z-index:999;background:white;border:1px solid #ddd;border-radius:10px;max-height:180px;overflow-y:auto;width:calc(100% - 32px);box-shadow:0 4px 12px rgba(0,0,0,.1);"></div>
+      <input type="hidden" id="birth-name">
+      <input type="hidden" id="birth-hood">
     </div>
     <div class="input-group">
       <label class="input-label">שכונה</label>
-      <select class="input-field" id="birth-hood">
-        <option value="">— בחרי שכונה —</option>
-        <option>עמישב</option><option>שכונות</option>
-        <option>נאות שמיר</option><option>רמבלס</option><option>הרדוף</option>
-      </select>
+      <div class="input-field" id="birth-hood-display" style="background:var(--cream);color:var(--text-light);">תיבחר אוטומטית</div>
     </div>
     <div class="input-group">
       <label class="input-label">תאריך לידה</label>
       <input class="input-field" id="birth-date" type="date">
     </div>
     <div class="divider"></div>
-    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">בחרי 5 נשים לצוות</div>
-    <div style="font-size:11px;color:var(--text-light);margin-bottom:10px;">סמני לפי שכונה או לפי תור</div>
-    <div class="sel-count">נבחרו <span id="sel-count-num">0</span> / 5</div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">בחרי מבשלות לצוות</div>
+    <div style="font-size:11px;color:var(--text-light);margin-bottom:10px;">סמני כמה שצריך לפי תור</div>
+    <div class="sel-count">נבחרו <span id="sel-count-num">0</span></div>
     <div id="candidates-list"></div>
     <div id="more-candidates" style="display:none;">
       <div style="font-size:12px;color:var(--text-light);text-align:center;padding:6px 0;">— נשים נוספות בתור —</div>
@@ -429,19 +428,53 @@ function openBirthModal() {
   document.getElementById('birth-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('birth-name').value='';
   document.getElementById('birth-hood').value='';
+  document.getElementById('birth-name-search').value='';
+  document.getElementById('birth-hood-display').textContent='תיבחר אוטומטית';
+  document.getElementById('birth-hood-display').style.color='var(--text-light)';
+  document.getElementById('mother-dropdown').style.display='none';
   selectedIds = new Set();
   renderCandidates();
   openModal('birth-modal');
 }
 
+function filterMotherSearch() {
+  const q = document.getElementById('birth-name-search').value.trim();
+  const dd = document.getElementById('mother-dropdown');
+  // clear selection when typing
+  document.getElementById('birth-name').value='';
+  document.getElementById('birth-hood').value='';
+  document.getElementById('birth-hood-display').textContent='תיבחר אוטומטית';
+  document.getElementById('birth-hood-display').style.color='var(--text-light)';
+  if(!q){dd.style.display='none';return;}
+  const matches = women.filter(w=>w.name.includes(q)).slice(0,8);
+  if(!matches.length){dd.style.display='none';return;}
+  dd.innerHTML = matches.map(w=>`
+    <div onclick="selectMother(${w.id})" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:14px;"
+         onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'">
+      <span style="font-weight:600;">${w.name}</span>
+      <span style="font-size:12px;color:var(--text-light);margin-right:6px;">${w.hood||''}</span>
+    </div>`).join('');
+  dd.style.display='block';
+}
+
+function selectMother(id) {
+  const w = women.find(w=>w.id===id);
+  if(!w) return;
+  document.getElementById('birth-name').value = w.name;
+  document.getElementById('birth-hood').value = w.hood||'';
+  document.getElementById('birth-name-search').value = w.name;
+  document.getElementById('birth-hood-display').textContent = w.hood||'לא ידועה';
+  document.getElementById('birth-hood-display').style.color='var(--text-dark)';
+  document.getElementById('mother-dropdown').style.display='none';
+}
+
 function renderCandidates() {
   const avail = women.filter(w=>w.status==='available');
-  const first5 = avail.slice(0,5);
-  const extra  = avail.slice(5);
-  document.getElementById('candidates-list').innerHTML = first5.map(candidateHTML).join('');
+  const first10 = avail.slice(0,10);
+  const extra   = avail.slice(10);
+  document.getElementById('candidates-list').innerHTML = first10.map(candidateHTML).join('');
   document.getElementById('extra-candidates-list').innerHTML = extra.map(candidateHTML).join('');
-  document.getElementById('more-candidates').style.display =
-    (extra.length>0 && selectedIds.size<5) ? 'block' : 'none';
+  document.getElementById('more-candidates').style.display = extra.length>0 ? 'block' : 'none';
   document.getElementById('sel-count-num').textContent = selectedIds.size;
 }
 
@@ -456,11 +489,8 @@ function candidateHTML(w) {
 }
 
 function toggleCandidate(id) {
-  if(selectedIds.has(id)) { selectedIds.delete(id); }
-  else {
-    if(selectedIds.size>=5){toast('כבר נבחרו 5 נשים');return;}
-    selectedIds.add(id);
-  }
+  if(selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
   renderCandidates();
 }
 
@@ -468,7 +498,7 @@ async function confirmBirth() {
   const name = document.getElementById('birth-name').value.trim();
   const hood = document.getElementById('birth-hood').value;
   const date = document.getElementById('birth-date').value;
-  if(!name){toast('נא להזין שם יולדת',true);return;}
+  if(!name){toast('נא לבחור יולדת מהרשימה',true);return;}
   if(selectedIds.size<1){toast('נא לבחור לפחות אישה אחת',true);return;}
   const birth = await apiFetch('/api/births',{method:'POST',body:{name,hood,date,teamIds:[...selectedIds]}});
   births.unshift(birth);
