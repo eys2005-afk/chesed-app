@@ -118,8 +118,8 @@ def get_sheets_client():
             sh.add_worksheet(title='נשים', rows=500, cols=10)
         if 'לידות' not in titles:
             sh.add_worksheet(title='לידות', rows=500, cols=10)
-        if 'APP_DATA' not in titles:
-            sh.add_worksheet(title='APP_DATA', rows=10, cols=2)
+        if 'גיבוי' not in titles:
+            sh.add_worksheet(title='גיבוי', rows=10, cols=2)
         return gc, sh
     except Exception as e:
         print(f"Sheets error: {e}")
@@ -150,12 +150,12 @@ def save_app_data_bg():
     threading.Thread(target=_save_app_data, daemon=True).start()
 
 def _save_app_data():
-    """Persist births + women statuses to APP_DATA sheet so data survives redeploys."""
+    """Persist births + women statuses to גיבוי sheet so data survives redeploys."""
     _, sh = get_sheets_client()
     if not sh:
         return
     try:
-        ws = sh.worksheet('APP_DATA')
+        ws = sh.worksheet('גיבוי')
         ws.clear()
         # row 1: births JSON
         ws.append_row(['births', json.dumps(_births, ensure_ascii=False)])
@@ -164,7 +164,7 @@ def _save_app_data():
                     for w in _women if w['status'] != 'available' or w.get('unavailUntil')}
         ws.append_row(['statuses', json.dumps(statuses, ensure_ascii=False)])
     except Exception as e:
-        print(f"APP_DATA save error: {e}")
+        print(f"גיבוי save error: {e}")
 
 def load_app_data():
     """Load persisted births + status overrides on startup."""
@@ -173,7 +173,7 @@ def load_app_data():
     if not sh:
         return
     try:
-        ws = sh.worksheet('APP_DATA')
+        ws = sh.worksheet('גיבוי')
         rows = ws.get_all_values()
         data = {r[0]: r[1] for r in rows if len(r) >= 2}
         if 'births' in data and data['births']:
@@ -185,9 +185,9 @@ def load_app_data():
                 if s:
                     w['status'] = s['status']
                     w['unavailUntil'] = s.get('unavailUntil')
-        print(f"APP_DATA loaded: {len(_births)} births, {len([w for w in _women if w['status']!='available'])} non-available women")
+        print(f"גיבוי loaded: {len(_births)} births, {len([w for w in _women if w['status']!='available'])} non-available women")
     except Exception as e:
-        print(f"APP_DATA load error: {e}")
+        print(f"גיבוי load error: {e}")
 
 def load_cooking_history():
     """Load last cooking date per family from תאריך בישול אחרון tab.
