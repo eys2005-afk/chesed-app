@@ -157,20 +157,17 @@
   </div>
 
   <div id="active-birth-section" style="display:none;">
-    <div class="section-label">צוות תורן עכשיו</div>
-    <div class="card" id="duty-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div>
-          <div style="font-size:12px;color:var(--text-light);">עבור</div>
-          <div style="font-size:16px;font-weight:700;" id="duty-for-name">—</div>
-          <div style="margin-top:4px;" id="duty-for-hood"></div>
-        </div>
-        <div style="font-size:11px;background:var(--gold-light);color:var(--gold);padding:4px 10px;border-radius:20px;font-weight:600;" id="duty-date">—</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="section-label" style="margin:0;">לידות פעילות</div>
+      <div style="font-size:13px;color:var(--text-mid);">
+        <span id="birth-carousel-idx">1</span> / <span id="birth-carousel-total">1</span>
       </div>
-      <div id="duty-team-list"></div>
-      <div class="divider"></div>
-      <button class="btn-wa" onclick="sendWhatsApp()">💬 שליחת WhatsApp לצוות</button>
     </div>
+    <!-- swipeable carousel -->
+    <div id="birth-carousel" style="overflow-x:auto;scroll-snap-type:x mandatory;display:flex;gap:12px;padding-bottom:4px;scrollbar-width:none;"
+         onscroll="onCarouselScroll()">
+    </div>
+    <div style="display:flex;justify-content:center;gap:6px;margin-top:8px;" id="carousel-dots"></div>
   </div>
 
   <div class="section-label">סטטוס</div>
@@ -306,13 +303,11 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div style="text-align:center;font-size:22px;font-weight:700;margin:10px 0 4px;" id="cant-name">—</div>
-    <div style="text-align:center;color:var(--text-light);font-size:13px;margin-bottom:16px;">כמה ימים לא זמינה?</div>
-    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;">
-      <button class="cant-days-btn" onclick="setCantDays(1)">יום</button>
-      <button class="cant-days-btn" onclick="setCantDays(3)">3 ימים</button>
-      <button class="cant-days-btn active" onclick="setCantDays(7)">שבוע</button>
-      <button class="cant-days-btn" onclick="setCantDays(14)">שבועיים</button>
-      <button class="cant-days-btn" onclick="setCantDays(30)">חודש</button>
+    <div style="text-align:center;color:var(--text-light);font-size:13px;margin-bottom:12px;">כמה ימים לא זמינה?</div>
+    <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;">
+      <input type="number" id="cant-days-input" value="7" min="1" max="365"
+        style="width:80px;text-align:center;font-size:22px;font-weight:700;border:2px solid var(--border);border-radius:12px;padding:8px;font-family:'Heebo',sans-serif;color:var(--text-dark);">
+      <span style="font-size:15px;color:var(--text-mid);">ימים</span>
     </div>
     <button class="btn-danger" onclick="confirmCant()">⏳ אישור — לא זמינה</button>
     <button class="btn-cancel" onclick="closeModal('cant-modal')">ביטול</button>
@@ -348,12 +343,6 @@ let births = [];
 let activeBirth = null;
 let selectedIds = new Set();
 let cantTargetId = null;
-let cantDays = 7;
-function setCantDays(d) {
-  cantDays = d;
-  document.querySelectorAll('.cant-days-btn').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-}
 let activeHoodFilter = 'הכל';
 let activeSearchTerm = '';
 
@@ -385,11 +374,8 @@ async function loadBirths() {
 // ══════════════════════════════════════════
 function switchTab(tab) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('screen-'+tab).classList.add('active');
-  const idx = ['home','women','history'].indexOf(tab);
-  document.querySelectorAll('.tab')[idx].classList.add('active');
   document.getElementById('nav-'+tab).classList.add('active');
   if(tab==='women') renderWomenList();
 }
@@ -522,37 +508,97 @@ async function confirmBirth() {
   toast('✅ לידה נרשמה בהצלחה');
 }
 
+function waLink(phone, msg) {
+  const num = phone.replace(/[^0-9]/g,'').replace(/^0/,'972');
+  return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+}
+
+function birthCardHTML(b) {
+  const team = women.filter(w=>b.teamIds.includes(w.id));
+  const addr = (women.find(w=>w.name===b.name)||{}).addr || '';
+  const dateStr = b.date ? b.date.split('-').reverse().join('.') : '—';
+  const members = team.map(w=>{
+    const msgAsk = `שלום ${w.name.split(' ')[0]}, האם תוכלי לבשל עבור ${b.name} (ילדה ב-${dateStr})?`;
+    const msgReminder = `שלום ${w.name.split(' ')[0]}, תזכורת לבישול עבור ${b.name}${addr?' — כתובת: '+addr:''}. תודה רבה! 🙏`;
+    const msgFree = `שלום ${w.name.split(' ')[0]}, `;
+    return `<div class="selected-member" style="flex-direction:column;align-items:stretch;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="member-avatar">${w.name[0]}</div>
+        <div class="member-info"><div class="member-name">${w.name}</div><div class="member-phone">${w.phone}</div></div>
+        <div class="hood-badge" style="margin:0 4px;">${w.hood||''}</div>
+        <button class="cant-btn" onclick="openCantModal(${w.id},'${w.name.replace(/'/g,"\\'")}',${b.id})">לא יכולה</button>
+      </div>
+      <div style="display:flex;gap:6px;padding-right:44px;">
+        <a href="${waLink(w.phone,msgAsk)}" target="_blank" style="flex:1;text-decoration:none;">
+          <button style="width:100%;font-family:'Heebo',sans-serif;background:#25D366;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">🙋 יכולה?</button>
+        </a>
+        <a href="${waLink(w.phone,msgFree)}" target="_blank" style="flex:1;text-decoration:none;">
+          <button style="width:100%;font-family:'Heebo',sans-serif;background:#128C7E;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">💬 חופשי</button>
+        </a>
+        <a href="${waLink(w.phone,msgReminder)}" target="_blank" style="flex:1;text-decoration:none;">
+          <button style="width:100%;font-family:'Heebo',sans-serif;background:#075E54;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">⏰ תזכורת</button>
+        </a>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="card" style="min-width:calc(100vw - 48px);scroll-snap-align:start;flex-shrink:0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div>
+        <div style="font-size:16px;font-weight:700;">${b.name}</div>
+        ${b.hood?`<span class="hood-badge gold" style="margin-top:4px;display:inline-block;">${b.hood}</span>`:''}
+        ${addr?`<div style="font-size:11px;color:var(--text-light);margin-top:2px;">📍 ${addr}</div>`:''}
+      </div>
+      <div style="font-size:11px;background:var(--gold-light);color:var(--gold);padding:4px 10px;border-radius:20px;font-weight:600;">${dateStr}</div>
+    </div>
+    ${members}
+  </div>`;
+}
+
 function renderActiveBirth() {
   const sec = document.getElementById('active-birth-section');
-  if(!activeBirth){sec.style.display='none';return;}
+  const active = births.filter(b=>!b.closed);
+  if(!active.length){sec.style.display='none';return;}
   sec.style.display='block';
-  document.getElementById('duty-for-name').textContent = activeBirth.name;
-  document.getElementById('duty-for-hood').innerHTML = activeBirth.hood ?
-    `<span class="hood-badge gold">${activeBirth.hood}</span>`:'';
-  document.getElementById('duty-date').textContent = activeBirth.date ?
-    'ילדה ב-'+activeBirth.date.split('-').reverse().join('.'):'';
-  const team = women.filter(w=>activeBirth.teamIds.includes(w.id));
-  document.getElementById('duty-team-list').innerHTML = team.map(w=>`
-    <div class="selected-member">
-      <div class="member-avatar">${w.name[0]}</div>
-      <div class="member-info"><div class="member-name">${w.name}</div><div class="member-phone">${w.phone}</div></div>
-      <div class="hood-badge" style="margin:0 4px;">${w.hood}</div>
-      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-        <div class="${w.status==='unavail'?'member-unavail':'member-available'}">${w.status==='unavail'?'לא זמינה':'זמינה'}</div>
-        <button class="cant-btn" onclick="openCantModal(${w.id},'${w.name}')">לא יכולה</button>
-      </div>
-    </div>`).join('');
+  activeBirth = active[0];
+  document.getElementById('birth-carousel-total').textContent = active.length;
+  document.getElementById('birth-carousel').innerHTML = active.map(birthCardHTML).join('');
+  document.getElementById('carousel-dots').innerHTML = active.length > 1
+    ? active.map((_,i)=>`<div onclick="scrollToCard(${i})" style="width:8px;height:8px;border-radius:50%;background:${i===0?'var(--purple)':'var(--border)'};cursor:pointer;" id="dot-${i}"></div>`).join('')
+    : '';
+}
+
+function scrollToCard(i) {
+  const c = document.getElementById('birth-carousel');
+  c.scrollTo({left: i * (c.offsetWidth + 12), behavior:'smooth'});
+}
+
+function onCarouselScroll() {
+  const c = document.getElementById('birth-carousel');
+  const i = Math.round(c.scrollLeft / (c.offsetWidth + 12));
+  document.getElementById('birth-carousel-idx').textContent = i+1;
+  document.querySelectorAll('[id^="dot-"]').forEach((d,j)=>{
+    d.style.background = j===i ? 'var(--purple)' : 'var(--border)';
+  });
+  const active = births.filter(b=>!b.closed);
+  if(active[i]) activeBirth = active[i];
 }
 
 // ══════════════════════════════════════════
 // CANT
 // ══════════════════════════════════════════
-function openCantModal(id,name){cantTargetId=id;document.getElementById('cant-name').textContent=name;openModal('cant-modal');}
+function openCantModal(id,name,birthId){
+  cantTargetId=id;
+  if(birthId) activeBirth = births.find(b=>b.id===birthId)||activeBirth;
+  document.getElementById('cant-name').textContent=name;
+  document.getElementById('cant-days-input').value=7;
+  openModal('cant-modal');
+}
 
 async function confirmCant() {
   if(!activeBirth) return;
+  const days = parseInt(document.getElementById('cant-days-input').value) || 7;
   const result = await apiFetch(`/api/births/${activeBirth.id}/replace`,
-    {method:'POST',body:{oldId:cantTargetId, days: cantDays}});
+    {method:'POST',body:{oldId:cantTargetId, days}});
   activeBirth = result.birth;
   births[0] = activeBirth;
   await loadWomen();
