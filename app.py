@@ -385,7 +385,8 @@ def add_birth():
         'date':    data.get('date', datetime.now().strftime('%Y-%m-%d')),
         'teamIds': data['teamIds'],
         'team':    team_members,
-        'addr':    data.get('addr', next((w.get('addr','') for w in _women if w['name']==data['name']), '')),
+        'addr':        data.get('addr', next((w.get('addr','') for w in _women if w['name']==data['name']), '')),
+        'motherPhone': next((w.get('phone','') for w in _women if w['name']==data['name']), ''),
         'created': datetime.now().isoformat(),
     }
     _births.insert(0, birth)
