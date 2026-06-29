@@ -321,12 +321,18 @@ def add_birth():
     if mother:
         mother['status'] = 'birth'
 
+    team_members = [
+        {'id': w['id'], 'name': w['name'], 'phone': w.get('phone',''), 'hood': w.get('hood',''), 'addr': w.get('addr','')}
+        for w in _women if w['id'] in data['teamIds']
+    ]
     birth = {
         'id':      int(time.time() * 1000),
         'name':    data['name'],
         'hood':    data.get('hood',''),
         'date':    data.get('date', datetime.now().strftime('%Y-%m-%d')),
         'teamIds': data['teamIds'],
+        'team':    team_members,
+        'addr':    data.get('addr', next((w.get('addr','') for w in _women if w['name']==data['name']), '')),
         'created': datetime.now().isoformat(),
     }
     _births.insert(0, birth)
@@ -368,6 +374,10 @@ def replace_team_member(bid):
     if replacement:
         birth['teamIds'] = [replacement['id'] if i == old_id else i
                             for i in birth['teamIds']]
+        birth['team'] = [
+            {'id': w['id'], 'name': w['name'], 'phone': w.get('phone',''), 'hood': w.get('hood',''), 'addr': w.get('addr','')}
+            for w in _women if w['id'] in birth['teamIds']
+        ]
 
     sync_to_sheets_bg(_women)
     return jsonify({'birth': birth, 'replacement': replacement})
