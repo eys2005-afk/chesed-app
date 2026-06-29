@@ -466,10 +466,15 @@ function selectMother(id) {
   document.getElementById('mother-dropdown').style.display='none';
 }
 
-function renderCandidates() {
-  const avail = women.filter(w=>w.status==='available');
-  const first10 = avail.slice(0,10);
-  const extra   = avail.slice(10);
+async function renderCandidates() {
+  let sorted;
+  try {
+    sorted = await apiFetch('/api/suggest?limit=200');
+  } catch(e) {
+    sorted = women.filter(w=>w.status==='available');
+  }
+  const first10 = sorted.slice(0,10);
+  const extra   = sorted.slice(10);
   document.getElementById('candidates-list').innerHTML = first10.map(candidateHTML).join('');
   document.getElementById('extra-candidates-list').innerHTML = extra.map(candidateHTML).join('');
   document.getElementById('more-candidates').style.display = extra.length>0 ? 'block' : 'none';
@@ -478,10 +483,11 @@ function renderCandidates() {
 
 function candidateHTML(w) {
   const sel = selectedIds.has(w.id);
+  const cooked = w.lastCooked ? `בישלה: ${w.lastCooked}` : 'לא בישלה עדיין';
   return `<div class="team-candidate ${sel?'selected':''}" onclick="toggleCandidate(${w.id})">
     <div class="candidate-check">${sel?'✓':''}</div>
     <div class="member-avatar">${w.name[0]}</div>
-    <div class="member-info"><div class="member-name">${w.name}</div><div class="member-phone">${w.phone}</div></div>
+    <div class="member-info"><div class="member-name">${w.name}</div><div class="member-phone" style="font-size:10px;">${cooked}</div></div>
     <div class="hood-badge">${w.hood}</div>
   </div>`;
 }
