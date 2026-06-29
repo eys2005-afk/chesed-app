@@ -330,6 +330,12 @@ def add_birth():
     sync_to_sheets(_women)
     return jsonify(birth), 201
 
+@app.route('/api/births/<int:bid>', methods=['DELETE'])
+def delete_birth(bid):
+    global _births
+    _births = [b for b in _births if b['id'] != bid]
+    return jsonify({'ok': True})
+
 @app.route('/api/births/<int:bid>/replace', methods=['POST'])
 def replace_team_member(bid):
     """Replace a team member who can't make it."""
@@ -340,6 +346,7 @@ def replace_team_member(bid):
 
     data = request.json
     old_id = data.get('oldId')
+    days = int(data.get('days', 7))
     if not old_id:
         return jsonify({'error': 'חסר oldId'}), 400
 
@@ -347,7 +354,7 @@ def replace_team_member(bid):
     old_w = next((w for w in _women if w['id'] == old_id), None)
     if old_w:
         old_w['status'] = 'unavail'
-        old_w['unavailUntil'] = (time.time() + 7 * 24 * 3600) * 1000
+        old_w['unavailUntil'] = (time.time() + days * 24 * 3600) * 1000
 
     # find replacement — available, not in team
     replacement = next(
