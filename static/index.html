@@ -532,12 +532,10 @@ async function confirmBirth() {
   toast('✅ לידה נרשמה בהצלחה');
 }
 
-function waLink(phone, msg) {
+function openWA(phone, msg) {
   const num = phone.replace(/[^0-9]/g,'').replace(/^0/,'972');
-  if(num.length < 10) return `javascript:alert('אין מספר טלפון לאישה זו')`;
-  const isAndroid = /android/i.test(navigator.userAgent);
-  if(isAndroid) return `intent://send?phone=${num}&text=${encodeURIComponent(msg)}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
-  return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+  if(num.length < 10) { alert('אין מספר טלפון לאישה זו'); return; }
+  window.location.href = `whatsapp://send?phone=${num}&text=${encodeURIComponent(msg)}`;
 }
 
 function birthCardHTML(b) {
@@ -560,15 +558,9 @@ function birthCardHTML(b) {
         <button class="cant-btn" onclick="openCantModal(${w.id},'${w.name.replace(/'/g,"\\'")}',${b.id})">לא יכולה</button>
       </div>
       <div style="display:flex;gap:6px;padding-right:44px;">
-        <a href="${waLink(w.phone,msgAsk)}" target="_blank" style="flex:1;text-decoration:none;">
-          <button style="width:100%;font-family:'Heebo',sans-serif;background:#25D366;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">🙋 יכולה?</button>
-        </a>
-        <a href="${waLink(w.phone,msgFree)}" target="_blank" style="flex:1;text-decoration:none;">
-          <button style="width:100%;font-family:'Heebo',sans-serif;background:#128C7E;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">💬 חופשי</button>
-        </a>
-        <a href="${waLink(w.phone,msgReminder)}" target="_blank" style="flex:1;text-decoration:none;">
-          <button style="width:100%;font-family:'Heebo',sans-serif;background:#075E54;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">⏰ תזכורת</button>
-        </a>
+        <button onclick="openWA('${w.phone}',\`${msgAsk.replace(/`/g,"'")}\`)" style="flex:1;font-family:'Heebo',sans-serif;background:#25D366;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">🙋 יכולה?</button>
+        <button onclick="openWA('${w.phone}',\`${msgFree.replace(/`/g,"'")}\`)" style="flex:1;font-family:'Heebo',sans-serif;background:#128C7E;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">💬 חופשי</button>
+        <button onclick="openWA('${w.phone}',\`${msgReminder.replace(/`/g,"'")}\`)" style="flex:1;font-family:'Heebo',sans-serif;background:#075E54;color:white;border:none;border-radius:8px;padding:5px 4px;font-size:11px;cursor:pointer;">⏰ תזכורת</button>
       </div>
     </div>`;
   }).join('');
