@@ -431,6 +431,7 @@ function openBirthModal() {
   document.getElementById('birth-hood-display').style.color='var(--text-light)';
   document.getElementById('mother-dropdown').style.display='none';
   selectedIds = new Set();
+  selectedMotherId = null;
   renderCandidates();
   openModal('birth-modal');
 }
@@ -455,15 +456,19 @@ function filterMotherSearch() {
   dd.style.display='block';
 }
 
+let selectedMotherId = null;
+
 function selectMother(id) {
   const w = women.find(w=>w.id===id);
   if(!w) return;
+  selectedMotherId = id;
   document.getElementById('birth-name').value = w.name;
   document.getElementById('birth-hood').value = w.hood||'';
   document.getElementById('birth-name-search').value = w.name;
   document.getElementById('birth-hood-display').textContent = w.hood||'לא ידועה';
   document.getElementById('birth-hood-display').style.color='var(--text-dark)';
   document.getElementById('mother-dropdown').style.display='none';
+  renderCandidates();
 }
 
 async function renderCandidates() {
@@ -473,6 +478,7 @@ async function renderCandidates() {
   } catch(e) {
     sorted = women.filter(w=>w.status==='available');
   }
+  if(selectedMotherId) sorted = sorted.filter(w=>w.id !== selectedMotherId);
   const first10 = sorted.slice(0,10);
   const extra   = sorted.slice(10);
   document.getElementById('candidates-list').innerHTML = first10.map(candidateHTML).join('');
