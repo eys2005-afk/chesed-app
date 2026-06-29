@@ -28,56 +28,37 @@ CORS(app)
 # מיפוי רחובות → שכונות ברמלה
 STREET_TO_HOOD = {
     # הרדוף
-    'הרדוף':          'הרדוף',
-    "אצ\"ל":          'הרדוף',
-    'אצל':             'הרדוף',
-    'מסדה':            'הרדוף',
-    # עמישב
-    'שלמה בן יוסף':   'עמישב',
-    'בן יוסף':         'עמישב',
-    'יוספטל':          'עמישב',
+    'הרדוף':           'הרדוף',
+    "אצ\"ל":           'הרדוף',
+    'אצל':              'הרדוף',
+    'מסדה':             'הרדוף',
+    # עמישב (= אג"ש / ביל"ו)
+    'שלמה בן יוסף':    'עמישב',
+    'בן יוסף':          'עמישב',
+    'יוספטל':           'עמישב',
+    'שמואל הנביא':      'עמישב',
+    'אליהו הנביא':      'עמישב',
+    'משה שמש':          'עמישב',
+    'הרב הרצוג':        'עמישב',
+    'הרצוג':            'עמישב',
     # נאות שמיר
-    'יוסי בנאי':       'נאות שמיר',
-    'עמיחי':           'נאות שמיר',
-    'יהודה עמיחי':     'נאות שמיר',
-    'נאות שמיר':       'נאות שמיר',
+    'יהודה עמיחי':      'נאות שמיר',
+    'נאות שמיר':        'נאות שמיר',
+    # קרית האמונים
+    'יוסי בנאי':        'קרית האמונים',
+    # שכונות (רחובות ידועים)
+    'עמיחי':            'שכונות',
     # רמבלס
-    'יגאל ידין':       'רמבלס',
-    # שכונות
-    'ויצמן':           'שכונות',
-    'הרצל':            'שכונות',
-    'בר אילן':         'שכונות',
-    'הרב מימון':       'שכונות',
-    'גורדון':          'שכונות',
-    'בורוכוב':         'שכונות',
-    'בן צבי':          'שכונות',
-    'הרב קוק':         'שכונות',
-    'הרב הרצוג':       'שכונות',
-    'הרב פינס':        'שכונות',
-    'שבזי':            'שכונות',
-    'שרת':             'שכונות',
-    'יבנה':            'שכונות',
-    'צה"ל':            'שכונות',
-    'צהל':             'שכונות',
-    'אברהם הלל':       'שכונות',
-    'ישראל פרנקל':     'שכונות',
-    'נתן אלבז':        'שכונות',
-    'הולצברג':         'שכונות',
-    'המגדל הלבן':      'שכונות',
-    'מנחם דניאל':      'שכונות',
-    'סשה ארגוב':       'שכונות',
-    'בורוכוב':         'שכונות',
-    'איפרגן':          'שכונות',
+    'יגאל ידין':        'רמבלס',
 }
 
 def detect_hood(addr):
-    """Detect neighborhood from address string."""
     if not addr:
-        return ''
+        return 'שכונות'
     for street, hood in STREET_TO_HOOD.items():
         if street in addr:
             return hood
-    return ''
+    return 'שכונות'
 
 # ══════════════════════════════════════════
 # GOOGLE SHEETS (optional — set env vars to enable)
@@ -126,8 +107,28 @@ def sync_to_sheets(women_data):
     except Exception as e:
         print(f"Sheets sync error: {e}")
 
+def load_cooking_history():
+    """Load last cooking date per family from תאריך בישול אחרון tab.
+    Returns dict: family_name -> last_cooked (DD/MM/YYYY string)."""
+    _, sh = get_sheets_client()
+    if not sh:
+        return {}
+    try:
+        ws = sh.worksheet('תאריך בישול אחרון')
+        rows = ws.get_all_values()
+        result = {}
+        for row in rows[1:]:
+            name = row[0].strip() if len(row) > 0 else ''
+            date = row[1].strip() if len(row) > 1 else ''
+            if name and date:
+                result[name] = date
+        return result
+    except Exception as e:
+        print(f"Cooking history load error: {e}")
+        return {}
+
 def load_from_sheets():
-    """Load women list from רשימת משפחות הגרעין sheet."""
+    """Load women list from רשימת משפחות הגרעין + cooking history."""
     _, sh = get_sheets_client()
     if not sh:
         return None
@@ -136,19 +137,27 @@ def load_from_sheets():
         rows = ws.get_all_values()
         if not rows:
             return None
+
+        history = load_cooking_history()
+
         result = []
         wid = 1
-        for row in rows[1:]:  # skip header
+        for row in rows[1:]:
             name  = row[1].strip()  if len(row) > 1 else ''
-            phone = row[4].strip()  if len(row) > 4 else ''  # נייד אשה
+            phone = row[4].strip()  if len(row) > 4 else ''
             hood  = row[5].strip()  if len(row) > 5 else ''
             addr  = row[6].strip()  if len(row) > 6 else ''
             delete= row[8].strip()  if len(row) > 8 else ''
             if not name or delete == '#N/A' or delete.startswith('מחק'):
                 continue
-            # auto-detect hood from address if not set
-            if not hood and addr:
+            if not hood:
                 hood = detect_hood(addr)
+            # match cooking history by family name (תורנות column contains family name)
+            last_cooked = ''
+            for fam, date in history.items():
+                if name in fam or fam in name:
+                    last_cooked = date
+                    break
             result.append({
                 'id':           wid,
                 'name':         name,
@@ -157,6 +166,7 @@ def load_from_sheets():
                 'addr':         addr,
                 'status':       'available',
                 'unavailUntil': None,
+                'lastCooked':   last_cooked,
             })
             wid += 1
         return result
@@ -323,6 +333,41 @@ def replace_team_member(bid):
     return jsonify({'birth': birth, 'replacement': replacement})
 
 # ══════════════════════════════════════════
+# ROUTES — SUGGEST TEAM
+# ══════════════════════════════════════════
+@app.route('/api/suggest', methods=['GET'])
+def suggest_team():
+    """Return 5 available women sorted by oldest last-cooked date."""
+    global _women
+    _women = check_unavail_expiry(_women)
+    exclude_ids = request.args.getlist('exclude', type=int)
+    hood_filter = request.args.get('hood', '')
+
+    def sort_key(w):
+        d = w.get('lastCooked', '')
+        if not d:
+            return '01/01/2000'  # never cooked → highest priority
+        # convert DD/MM/YYYY to YYYY/MM/DD for sorting
+        try:
+            parts = d.split('/')
+            return f"{parts[2]}/{parts[1]}/{parts[0]}"
+        except:
+            return '01/01/2000'
+
+    available = [w for w in _women
+                 if w['status'] == 'available' and w['id'] not in exclude_ids]
+
+    # prefer same neighborhood if specified
+    if hood_filter:
+        same_hood = [w for w in available if w.get('hood') == hood_filter]
+        other = [w for w in available if w.get('hood') != hood_filter]
+        available = sorted(same_hood, key=sort_key) + sorted(other, key=sort_key)
+    else:
+        available = sorted(available, key=sort_key)
+
+    return jsonify(available[:5])
+
+# ══════════════════════════════════════════
 # ROUTES — SYNC
 # ══════════════════════════════════════════
 @app.route('/api/sync', methods=['POST'])
@@ -337,11 +382,14 @@ def sync_from_sheets():
 
 @app.route('/api/health', methods=['GET'])
 def health():
+    sa_json = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON', '')
     return jsonify({
         'status': 'ok',
         'women': len(_women),
         'births': len(_births),
         'sheets_enabled': SHEETS_ENABLED,
+        'sa_json_len': len(sa_json),
+        'sa_json_start': sa_json[:10] if sa_json else '',
         'time': datetime.now().isoformat()
     })
 
