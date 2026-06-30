@@ -476,24 +476,42 @@ def replace_team_member(bid):
         old_w['status'] = 'unavail'
         old_w['unavailUntil'] = (time.time() + days * 24 * 3600) * 1000
 
-    # find replacement — available, not in team
-    replacement = next(
-        (w for w in _women
-         if w['status'] == 'available' and w['id'] not in birth['teamIds']),
-        None
-    )
-    if replacement:
-        replacement['status'] = 'cooking'
-        birth['teamIds'] = [replacement['id'] if i == old_id else i
-                            for i in birth['teamIds']]
-        birth['team'] = [
-            {'id': w['id'], 'name': w['name'], 'phone': w.get('phone',''), 'hood': w.get('hood',''), 'addr': w.get('addr','')}
-            for w in _women if w['id'] in birth['teamIds']
-        ]
+    # remove her from the team — no auto-replacement; user picks manually
+    birth['teamIds'] = [i for i in birth['teamIds'] if i != old_id]
+    birth['team'] = [m for m in birth['team'] if m['id'] != old_id]
 
     sync_to_sheets_bg(_women)
     save_app_data_bg()
-    return jsonify({'birth': birth, 'replacement': replacement})
+    return jsonify({'birth': birth})
+
+@app.route('/api/births/<int:bid>/add-member', methods=['POST'])
+def add_team_member(bid):
+    """Manually add a chosen woman to an existing birth's team."""
+    global _women, _births
+    birth = next((b for b in _births if b['id'] == bid), None)
+    if not birth:
+        return jsonify({'error': 'לידה לא נמצאה'}), 404
+
+    data = request.json
+    new_id = data.get('newId')
+    if not new_id:
+        return jsonify({'error': 'חסר newId'}), 400
+
+    new_w = next((w for w in _women if w['id'] == new_id), None)
+    if not new_w:
+        return jsonify({'error': 'אישה לא נמצאה'}), 404
+
+    new_w['status'] = 'cooking'
+    if new_id not in birth['teamIds']:
+        birth['teamIds'].append(new_id)
+    birth['team'] = [
+        {'id': w['id'], 'name': w['name'], 'phone': w.get('phone',''), 'hood': w.get('hood',''), 'addr': w.get('addr','')}
+        for w in _women if w['id'] in birth['teamIds']
+    ]
+
+    sync_to_sheets_bg(_women)
+    save_app_data_bg()
+    return jsonify({'birth': birth})
 
 # ══════════════════════════════════════════
 # ROUTES — SUGGEST TEAM
