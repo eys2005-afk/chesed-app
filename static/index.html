@@ -443,7 +443,7 @@ function openStatModal(type) {
 }
 
 async function restoreAvailable(id) {
-  await apiFetch(`/api/women/${id}`, {method:'PATCH', body:JSON.stringify({status:'available',unavailUntil:null})});
+  await apiFetch(`/api/women/${id}`, {method:'PATCH', body:{status:'available',unavailUntil:null}});
   await loadWomen();
   openStatModal('unavail');
   toast('✅ הוחזרה לרשימה הזמינות');
