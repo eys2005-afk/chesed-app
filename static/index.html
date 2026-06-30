@@ -253,7 +253,8 @@
       <div style="font-size:13px;font-weight:600;">בחרי מבשלות לצוות</div>
       <button class="btn-primary" style="padding:7px 16px;font-size:13px;" onclick="confirmBirth()">✅ אישור</button>
     </div>
-    <div style="font-size:11px;color:var(--text-light);margin-bottom:10px;">סמני כמה שצריך לפי תור</div>
+    <div style="font-size:11px;color:var(--text-light);margin-bottom:10px;">סמני כמה שצריך לפי תור, או חפשי שם ספציפי</div>
+    <input class="input-field" id="candidate-search" placeholder="🔍 חיפוש לפי שם..." oninput="renderCandidates()" autocomplete="off" style="margin-bottom:10px;">
     <div class="sel-count">נבחרו <span id="sel-count-num">0</span></div>
     <div id="candidates-list"></div>
     <div id="more-candidates" style="display:none;">
@@ -313,6 +314,17 @@
     </div>
     <button class="btn-danger" onclick="confirmCant()">⏳ אישור — לא זמינה</button>
     <button class="btn-cancel" onclick="closeModal('cant-modal')">ביטול</button>
+  </div>
+</div>
+
+<!-- MODAL: REPLACE -->
+<div class="modal-overlay" id="replace-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👤 בחרי מחליפה</div>
+    <input class="input-field" id="replace-search" placeholder="🔍 חיפוש לפי שם..." oninput="renderReplaceCandidates()" autocomplete="off" style="margin-bottom:10px;">
+    <div id="replace-candidates-list"></div>
+    <button class="btn-cancel" style="margin-top:12px;" onclick="closeModal('replace-modal')">דלגי לעת עתה</button>
   </div>
 </div>
 
@@ -440,6 +452,7 @@ function openBirthModal() {
   document.getElementById('birth-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('birth-name').value='';
   document.getElementById('birth-hood').value='';
+  document.getElementById('candidate-search').value='';
   document.getElementById('birth-name-search').value='';
   document.getElementById('birth-hood-display').textContent='תיבחר אוטומטית';
   document.getElementById('birth-hood-display').style.color='var(--text-light)';
@@ -493,6 +506,26 @@ async function renderCandidates() {
     sorted = women.filter(w=>w.status==='available');
   }
   if(selectedMotherId) sorted = sorted.filter(w=>w.id !== selectedMotherId);
+
+  const q = (document.getElementById('candidate-search')?.value || '').trim();
+  if(q) {
+    // search by name across all women (not just the sorted suggestion list),
+    // so a specifically-requested cook can be found even if far down the queue
+    const already = new Set(sorted.map(w=>w.id));
+    const extras = women.filter(w =>
+      w.name.includes(q) &&
+      w.id !== selectedMotherId &&
+      !already.has(w.id) &&
+      (w.status === 'available' || selectedIds.has(w.id))
+    );
+    const matched = sorted.filter(w => w.name.includes(q)).concat(extras);
+    document.getElementById('candidates-list').innerHTML = matched.map(candidateHTML).join('');
+    document.getElementById('extra-candidates-list').innerHTML = '';
+    document.getElementById('more-candidates').style.display = 'none';
+    document.getElementById('sel-count-num').textContent = selectedIds.size;
+    return;
+  }
+
   const first10 = sorted.slice(0,10);
   const extra   = sorted.slice(10);
   document.getElementById('candidates-list').innerHTML = first10.map(candidateHTML).join('');
@@ -634,12 +667,67 @@ async function confirmCant() {
   const result = await apiFetch(`/api/births/${activeBirth.id}/replace`,
     {method:'POST',body:{oldId:cantTargetId, days}});
   activeBirth = result.birth;
-  births[0] = activeBirth;
+  const idx = births.findIndex(b=>b.id===activeBirth.id);
+  if(idx>-1) births[idx] = activeBirth;
   await loadWomen();
   closeModal('cant-modal');
   renderActiveBirth();
-  const rep = result.replacement;
-  toast(rep ? `✅ ${rep.name} נכנסה במקום` : 'עודכן — אין החלפה זמינה');
+  toast('עודכן — בחרי מחליפה לצוות');
+  openReplaceModal(activeBirth.id);
+}
+
+// ══════════════════════════════════════════
+// MANUAL REPLACEMENT PICKER
+// ══════════════════════════════════════════
+let replaceBirthId = null;
+
+async function openReplaceModal(birthId) {
+  replaceBirthId = birthId;
+  document.getElementById('replace-search').value = '';
+  await renderReplaceCandidates();
+  openModal('replace-modal');
+}
+
+async function renderReplaceCandidates() {
+  const birth = births.find(b=>b.id===replaceBirthId);
+  if(!birth) return;
+  let sorted;
+  try {
+    sorted = await apiFetch('/api/suggest?limit=200');
+  } catch(e) {
+    sorted = women.filter(w=>w.status==='available');
+  }
+  const q = (document.getElementById('replace-search')?.value || '').trim();
+  let list = sorted.filter(w => !birth.teamIds.includes(w.id));
+  if(q) {
+    const already = new Set(list.map(w=>w.id));
+    const extras = women.filter(w =>
+      w.name.includes(q) && w.status==='available' &&
+      !birth.teamIds.includes(w.id) && !already.has(w.id)
+    );
+    list = list.filter(w => w.name.includes(q)).concat(extras);
+  } else {
+    list = list.slice(0,15);
+  }
+  document.getElementById('replace-candidates-list').innerHTML = list.map(w => `
+    <div class="team-candidate" onclick="selectReplacement(${w.id})">
+      <div class="member-avatar">${w.name[0]}</div>
+      <div class="member-info"><div class="member-name">${w.name}</div><div class="member-phone" style="font-size:10px;">${w.lastCooked?`בישול אחרון: ${w.lastCooked}`:'טרם בישלה'}</div></div>
+      <div class="hood-badge">${w.hood||''}</div>
+    </div>`).join('') || '<div style="text-align:center;color:var(--text-light);padding:14px;">אין תוצאות</div>';
+}
+
+async function selectReplacement(newId) {
+  if(!replaceBirthId) return;
+  const result = await apiFetch(`/api/births/${replaceBirthId}/add-member`,
+    {method:'POST',body:{newId}});
+  activeBirth = result.birth;
+  const idx = births.findIndex(b=>b.id===activeBirth.id);
+  if(idx>-1) births[idx] = activeBirth;
+  await loadWomen();
+  closeModal('replace-modal');
+  renderActiveBirth();
+  toast('✅ נוספה לצוות');
 }
 
 async function deleteBirth(bid) {
