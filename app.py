@@ -568,11 +568,14 @@ def suggest_team():
 # ══════════════════════════════════════════
 @app.route('/api/sync', methods=['POST'])
 def sync_from_sheets():
-    """Reload women from Google Sheets."""
+    """Reload women from Google Sheets, then re-apply live statuses (cooking/unavail/birth)
+    and phone enrichment so a sync doesn't wipe in-progress app state."""
     global _women
     data = load_from_sheets()
     if data is not None:
         _women = data
+        enrich_phones_from_contact_tab(_women)
+        load_app_data()
         return jsonify({'ok': True, 'count': len(_women)})
     return jsonify({'ok': False, 'message': 'Google Sheets לא מוגדר'}), 200
 
