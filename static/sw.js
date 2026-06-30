@@ -1,8 +1,6 @@
-const CACHE = 'chesed-v1';
-const ASSETS = ['/', '/static/index.html'];
+const CACHE = 'chesed-v2';
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
   self.skipWaiting();
 });
 
@@ -16,6 +14,10 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if(e.request.url.includes('/api/')) return;
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+    fetch(e.request).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copy));
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });
