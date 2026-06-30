@@ -432,6 +432,7 @@ def add_birth():
         'team':    team_members,
         'addr':        data.get('addr', next((w.get('addr','') for w in _women if w['name']==data['name']), '')),
         'motherPhone': next((w.get('phone','') for w in _women if w['name']==data['name']), ''),
+        'groupLink': '',
         'created': datetime.now().isoformat(),
     }
     _births.insert(0, birth)
@@ -481,6 +482,18 @@ def replace_team_member(bid):
     birth['team'] = [m for m in birth['team'] if m['id'] != old_id]
 
     sync_to_sheets_bg(_women)
+    save_app_data_bg()
+    return jsonify({'birth': birth})
+
+@app.route('/api/births/<int:bid>/group', methods=['POST'])
+def save_group_link(bid):
+    """Save the WhatsApp group invite link for this birth's team."""
+    global _births
+    birth = next((b for b in _births if b['id'] == bid), None)
+    if not birth:
+        return jsonify({'error': 'לידה לא נמצאה'}), 404
+    data = request.json
+    birth['groupLink'] = (data.get('groupLink') or '').strip()
     save_app_data_bg()
     return jsonify({'birth': birth})
 
