@@ -612,6 +612,9 @@ function birthCardHTML(b) {
       </div>
     </div>`;
   }).join('');
+  const groupBtn = b.groupLink
+    ? `<button onclick="window.open('${b.groupLink}','_blank')" style="flex:1;font-family:'Heebo',sans-serif;background:#25D366;color:white;border:none;border-radius:8px;padding:8px 4px;font-size:12px;font-weight:600;cursor:pointer;">💬 שליחת הודעה לקבוצה</button>`
+    : `<button onclick="saveGroupLink(${b.id})" style="flex:1;font-family:'Heebo',sans-serif;background:var(--cream);color:var(--text-dark);border:1px solid var(--border);border-radius:8px;padding:8px 4px;font-size:12px;font-weight:600;cursor:pointer;">🔗 שמרי קישור לקבוצה שיצרת</button>`;
   return `<div class="card" style="min-width:calc(100vw - 48px);scroll-snap-align:start;flex-shrink:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <div>
@@ -621,8 +624,45 @@ function birthCardHTML(b) {
       </div>
       <div style="font-size:11px;background:var(--gold-light);color:var(--gold);padding:4px 10px;border-radius:20px;font-weight:600;">${dateStr}</div>
     </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;">
+      <button onclick="createWAGroup(${b.id})" style="flex:1;font-family:'Heebo',sans-serif;background:#128C7E;color:white;border:none;border-radius:8px;padding:8px 4px;font-size:12px;font-weight:600;cursor:pointer;">📱 הקמת קבוצת WhatsApp</button>
+      ${groupBtn}
+    </div>
     ${members}
   </div>`;
+}
+
+// ══════════════════════════════════════════
+// WHATSAPP GROUP
+// ══════════════════════════════════════════
+function createWAGroup(bid) {
+  const b = births.find(x=>x.id===bid);
+  if(!b) return;
+  const team = b.team && b.team.length ? b.team : women.filter(w=>b.teamIds.includes(w.id));
+  const groupName = `בישולים ל${b.name.split(' ')[0]}`;
+  const numbers = team.map(w=>w.phone).filter(Boolean).join(', ');
+  const text = `שם הקבוצה: ${groupName}\nמספרים להוספה:\n${numbers}`;
+  if(navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(()=>{
+      toast('📋 שם הקבוצה והמספרים הועתקו — פתחי קבוצה חדשה בוואטסאפ והדביקי');
+    }).catch(()=>{
+      alert(text);
+    });
+  } else {
+    alert(text);
+  }
+  setTimeout(()=>{ window.open('https://wa.me/','_blank'); }, 600);
+}
+
+async function saveGroupLink(bid) {
+  const link = prompt('הדביקי כאן את קישור ההזמנה של הקבוצה (מתוך פרטי הקבוצה בוואטסאפ → הזמנה בקישור → העתקת קישור):');
+  if(!link) return;
+  const result = await apiFetch(`/api/births/${bid}/group`, {method:'POST', body:{groupLink: link.trim()}});
+  const idx = births.findIndex(x=>x.id===bid);
+  if(idx>-1) births[idx] = result.birth;
+  if(activeBirth && activeBirth.id===bid) activeBirth = result.birth;
+  renderActiveBirth();
+  toast('✅ קישור הקבוצה נשמר');
 }
 
 function renderActiveBirth() {
