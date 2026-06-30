@@ -639,7 +639,8 @@ function createWAGroup(bid) {
   const b = births.find(x=>x.id===bid);
   if(!b) return;
   const team = b.team && b.team.length ? b.team : women.filter(w=>b.teamIds.includes(w.id));
-  const groupName = `בישולים ל${b.name.split(' ')[0]}`;
+  const lastName = b.name.split(' ').slice(1).join(' ') || b.name;
+  const groupName = `בישולים למשפחת ${lastName}`;
   const numbers = team.map(w=>w.phone).filter(Boolean).join(', ');
   const text = `שם הקבוצה: ${groupName}\nמספרים להוספה:\n${numbers}`;
   if(navigator.clipboard) {
