@@ -331,10 +331,27 @@ if _loaded:
 # Restore births + status overrides from previous session
 load_app_data()
 
+def _unavail_expired(until, now_ms):
+    """unavailUntil is written in two different formats depending on which
+    route set it: epoch-ms numbers (mark_cant, replace_team_member) and
+    'YYYY-MM-DD' strings (the generic PATCH /api/women/<id> used by the
+    status dialog and the auto-unavailable-mother flow). Comparing a float
+    to a str raises TypeError in Python 3, which used to crash this whole
+    function (and therefore GET /api/women) the first time anyone was
+    marked unavailable through the UI."""
+    if not until:
+        return False
+    if isinstance(until, (int, float)):
+        return now_ms > until
+    try:
+        return datetime.now() > datetime.fromisoformat(str(until)[:10])
+    except ValueError:
+        return False
+
 def check_unavail_expiry(women):
     now_ms = time.time() * 1000
     for w in women:
-        if w['status'] == 'unavail' and w.get('unavailUntil') and now_ms > w['unavailUntil']:
+        if w['status'] == 'unavail' and _unavail_expired(w.get('unavailUntil'), now_ms):
             w['status'] = 'available'
             w['unavailUntil'] = None
     return women
