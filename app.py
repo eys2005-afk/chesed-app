@@ -99,10 +99,18 @@ def detect_hood(addr):
 # ══════════════════════════════════════════
 SHEETS_ENABLED = bool(os.getenv('GOOGLE_SHEET_ID'))
 
+_sheets_cache = {'gc': None, 'sh': None}
+
 def get_sheets_client():
-    """Returns gspread client if configured."""
+    """Returns gspread client if configured. Cached after the first successful
+    call — startup alone calls this 3x in a row (load_from_sheets, phone
+    enrichment, load_app_data), and each call was re-authenticating and
+    re-opening the spreadsheet from scratch, which is a big chunk of the
+    app's slow load time."""
     if not SHEETS_ENABLED:
         return None, None
+    if _sheets_cache['sh'] is not None:
+        return _sheets_cache['gc'], _sheets_cache['sh']
     try:
         import gspread
         from google.oauth2.service_account import Credentials
@@ -120,6 +128,8 @@ def get_sheets_client():
             sh.add_worksheet(title='לידות', rows=500, cols=10)
         if 'גיבוי' not in titles:
             sh.add_worksheet(title='גיבוי', rows=10, cols=2)
+        _sheets_cache['gc'] = gc
+        _sheets_cache['sh'] = sh
         return gc, sh
     except Exception as e:
         print(f"Sheets error: {e}")
