@@ -99,10 +99,18 @@ def detect_hood(addr):
 # ══════════════════════════════════════════
 SHEETS_ENABLED = bool(os.getenv('GOOGLE_SHEET_ID'))
 
+_sheets_cache = {'gc': None, 'sh': None}
+
 def get_sheets_client():
-    """Returns gspread client if configured."""
+    """Returns gspread client if configured. Cached after the first successful
+    call — startup alone calls this 3x in a row (load_from_sheets, phone
+    enrichment, load_app_data), and each call was re-authenticating and
+    re-opening the spreadsheet from scratch, which is a big chunk of the
+    app's slow load time."""
     if not SHEETS_ENABLED:
         return None, None
+    if _sheets_cache['sh'] is not None:
+        return _sheets_cache['gc'], _sheets_cache['sh']
     try:
         import gspread
         from google.oauth2.service_account import Credentials
@@ -120,6 +128,8 @@ def get_sheets_client():
             sh.add_worksheet(title='לידות', rows=500, cols=10)
         if 'גיבוי' not in titles:
             sh.add_worksheet(title='גיבוי', rows=10, cols=2)
+        _sheets_cache['gc'] = gc
+        _sheets_cache['sh'] = sh
         return gc, sh
     except Exception as e:
         print(f"Sheets error: {e}")
@@ -321,10 +331,27 @@ if _loaded:
 # Restore births + status overrides from previous session
 load_app_data()
 
+def _unavail_expired(until, now_ms):
+    """unavailUntil is written in two different formats depending on which
+    route set it: epoch-ms numbers (mark_cant, replace_team_member) and
+    'YYYY-MM-DD' strings (the generic PATCH /api/women/<id> used by the
+    status dialog and the auto-unavailable-mother flow). Comparing a float
+    to a str raises TypeError in Python 3, which used to crash this whole
+    function (and therefore GET /api/women) the first time anyone was
+    marked unavailable through the UI."""
+    if not until:
+        return False
+    if isinstance(until, (int, float)):
+        return now_ms > until
+    try:
+        return datetime.now() > datetime.fromisoformat(str(until)[:10])
+    except ValueError:
+        return False
+
 def check_unavail_expiry(women):
     now_ms = time.time() * 1000
     for w in women:
-        if w['status'] == 'unavail' and w.get('unavailUntil') and now_ms > w['unavailUntil']:
+        if w['status'] == 'unavail' and _unavail_expired(w.get('unavailUntil'), now_ms):
             w['status'] = 'available'
             w['unavailUntil'] = None
     return women
