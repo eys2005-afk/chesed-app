@@ -185,6 +185,48 @@ def log_cooking_completion(birth):
     except Exception as e:
         print(f"Cooking log append error: {e}")
 
+def backfill_cooking_log_once():
+    """One-time backfill of births completed by the app before
+    log_cooking_completion existed, sourced from the app's own archive
+    history (Supabase birth_history, 2026-07-21 through 2026-10-28) —
+    does not touch anything from before the app was built. Guarded by
+    row count (the sheet had exactly 977 rows before this ran) so it
+    only ever runs once across redeploys/restarts. Safe to delete this
+    function and its startup call once confirmed."""
+    _, sh = get_sheets_client()
+    if not sh:
+        return
+    try:
+        ws = sh.worksheet('שיבוץ מבשלות חדש')
+        if len(ws.col_values(1)) > 977:
+            return  # already backfilled
+        rows = [
+            ['21/07/2026', 'הדר מלכא', 'שכנר משה ומרים', '050-5876773', '', '052-8903846'],
+            ['21/07/2026', 'הדר מלכא', 'נגה זלוטניק', '050-5876773', '', '054-8141434'],
+            ['21/07/2026', 'הדר מלכא', 'מלאכי ישראל ויערה', '050-5876773', '', '052-2434623'],
+            ['21/07/2026', 'הדר מלכא', 'כהן נתנאל ורבקה', '050-5876773', '', '050-2407902'],
+            ['07/10/2026', 'אביה טרבלסי', 'צוויק הרב אורן ומיכל', '', '', '054-2011248'],
+            ['07/10/2026', 'אביה טרבלסי', 'רייכנר יואל ואביטל', '', '', '054-6672788'],
+            ['07/10/2026', 'אביה טרבלסי', 'שביט עמית ושירה', '', '', '058-4034115'],
+            ['07/10/2026', 'אביה טרבלסי', 'רחל רדמן', '', '', ''],
+            ['07/10/2026', 'הדס גולדמן', 'וקסמן מרים ודוד', '050-5935342', '', '058-6537705'],
+            ['07/10/2026', 'הדס גולדמן', 'הכהן מרדכי וחגית', '050-5935342', '', '050-6730975'],
+            ['07/10/2026', 'הדס גולדמן', 'סולטן אלעד ומיכל', '050-5935342', '', '054-9417768'],
+            ['07/10/2026', 'הדס גולדמן', 'תחיה בן דוד', '050-5935342', '', '054-2338830'],
+            ['15/10/2026', 'אסתר רטיג', 'פויכטונגר דביר ואילת', '', '', '058-6280505'],
+            ['15/10/2026', 'אסתר רטיג', 'יצחק נוי וחנה', '', '', '052-6544905'],
+            ['15/10/2026', 'אסתר רטיג', 'רעות אלטמן', '', '', '054-5827764'],
+            ['28/10/2026', 'אילה מורי', 'נעה צברי', '', '', '052-4556881'],
+            ['28/10/2026', 'אילה מורי', 'לוי שי וענבל', '', '', '052-4235066'],
+            ['28/10/2026', 'אילה מורי', 'הראש מתן ורעות', '', '', '050-4484022'],
+            ['28/10/2026', 'אילה מורי', 'דלין דב ואביבה', '', '', '054-5409369'],
+        ]
+        for row in rows:
+            ws.append_row(row)
+        print(f"Backfilled {len(rows)} cooking log rows")
+    except Exception as e:
+        print(f"Cooking log backfill error: {e}")
+
 def save_app_data_bg():
     threading.Thread(target=_save_app_data, daemon=True).start()
 
@@ -359,6 +401,9 @@ if _loaded:
 
 # Restore births + status overrides from previous session
 load_app_data()
+
+# One-time backfill of pre-feature cooking history (see function docstring)
+backfill_cooking_log_once()
 
 def _unavail_expired(until, now_ms):
     """unavailUntil is written in two different formats depending on which
