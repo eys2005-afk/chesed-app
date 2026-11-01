@@ -156,6 +156,35 @@ def sync_to_sheets(women_data):
     except Exception as e:
         print(f"Sheets sync error: {e}")
 
+def log_cooking_completion_bg(birth):
+    threading.Thread(target=log_cooking_completion, args=(dict(birth),), daemon=True).start()
+
+def log_cooking_completion(birth):
+    """Append one row per team member to 'שיבוץ מבשלות חדש' when a birth's
+    cooking support period ends (delete or archive both hit this). Append-only
+    via ws.append_row — never touches any existing row, so the sheet's
+    pre-app history is untouched; this only adds rows going forward."""
+    team = birth.get('team') or []
+    if not team:
+        return
+    _, sh = get_sheets_client()
+    if not sh:
+        return
+    try:
+        ws = sh.worksheet('שיבוץ מבשלות חדש')
+        today = datetime.now().strftime('%d/%m/%Y')
+        for m in team:
+            ws.append_row([
+                today,
+                birth.get('name', ''),
+                m.get('name', ''),
+                birth.get('motherPhone', ''),
+                birth.get('addr', ''),
+                m.get('phone', ''),
+            ])
+    except Exception as e:
+        print(f"Cooking log append error: {e}")
+
 def save_app_data_bg():
     threading.Thread(target=_save_app_data, daemon=True).start()
 
@@ -472,6 +501,7 @@ def delete_birth(bid):
     global _births, _women
     birth = next((b for b in _births if b['id'] == bid), None)
     if birth:
+        log_cooking_completion_bg(birth)
         # restore team members to available
         for w in _women:
             if w['id'] in birth.get('teamIds', []) and w['status'] == 'cooking':
