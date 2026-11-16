@@ -716,7 +716,8 @@ def health():
         'sheets_enabled': SHEETS_ENABLED,
         'sa_json_len': len(sa_json),
         'sa_json_start': sa_json[:10] if sa_json else '',
-        'time': datetime.now().isoformat()
+        'time': datetime.now().isoformat(),
+        'commit': os.getenv('RENDER_GIT_COMMIT', '')[:12],
     })
 
 # ══════════════════════════════════════════
